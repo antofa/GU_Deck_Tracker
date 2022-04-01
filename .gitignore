@@ -1,0 +1,8 @@
+data/
+build/
+
+*.pyc
+*.db
+*.log
+
+my*

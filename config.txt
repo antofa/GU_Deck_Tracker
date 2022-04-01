@@ -1,0 +1,8 @@
+textFont::==Open Sans Medium
+textSize::==10
+opacity::==1
+logFolderPath::==c:\Users\user\AppData\LocalLow\FuelGames\gods\
+deckTracker::==True
+updateNotify::==False
+autoUpdate::==True
+justUpdated::==False
