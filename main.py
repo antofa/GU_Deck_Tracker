@@ -536,7 +536,8 @@ class MainWindow(QWidget):
         self.my_timer = QtCore.QTimer()
         self.my_timer.timeout.connect(self.update)
         # todo: start immediately
-        self.my_timer.start(5000)  # 5 sec
+        # self.my_timer.start(5000)  # 5 sec
+        self.my_timer.start(1000)  # 1 sec
 
     # Constantly looping update to keep the deck tracker up to date
     def update(self):
