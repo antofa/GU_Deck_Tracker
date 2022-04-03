@@ -347,7 +347,13 @@ def getDecksStr():
     return "\n".join(rows)
 
 
-def setPlayerIds():
+def resetPlayersData():
+    print('resetPlayersData')
+    global playerId, opponentId, firstPlayerId, player, opponent
+    playerId = opponentId = firstPlayerId = player = opponent = None
+
+
+def setPlayers():
     global playerId, opponentId
     if playerId and opponentId:
         return
@@ -367,6 +373,11 @@ def setPlayerIds():
                 break
 
     print('player ids:', playerId, opponentId)
+
+    global player, opponent
+    player = Player(id=playerId, type="me")
+    # opponent = Player(id="3807794", type="opponent", deckCode='war,1002,1022,1024,1024,1052,1077,1077,1140,1152,1156,1172,1180,1197,1197,1206,1214,1214,1320,1320,1324,1327,1480,1484,1489,87005,87005,87027,87027,87028,87028')
+    opponent = Player(id=opponentId, type="opponent")
 
 
 def setFirstPlayerId():
@@ -458,12 +469,13 @@ def opponentsWebpage(logFolderPath):
         alert.exec()
 
 
-def toggleConfigBoolean(configFile, toToggle):
-    currVal = getConfigVal(configFile, toToggle)
-    if (currVal == "True"):
-        updateConfig(configFile, toToggle, "False")
-    else:
-        updateConfig(configFile, toToggle, "True")
+def toggleConfigBoolean(configFile, key):
+    currVal = getConfigVal(configFile, key) == 'True'
+    print('toggleConfigBoolean', key, currVal, not currVal)
+    updateConfig(configFile, key, not currVal)
+
+    if key == 'deckTracker' and not currVal:
+        resetPlayersData()
 
 
 # Main Window which includes the deck tracker
@@ -487,9 +499,9 @@ class MainWindow(QWidget):
         self.opacity = float(getConfigVal(configFile, "opacity"))
         self.logFolderPath = getConfigVal(configFile, "logFolderPath")
 
-        # Always start with the deck tracker enabled, regardless of previous settings
-        updateConfig(configFile, "deckTracker", "True")
-        self.showTracker = True
+        # Always start with the deck tracker disabled, regardless of previous settings
+        updateConfig(configFile, "deckTracker", False)
+        self.showTracker = False
 
         # This is so that we don't spam the user with tons of warnings if a log file can't be found
         self.warnedAboutLogFile = False
@@ -560,6 +572,7 @@ class MainWindow(QWidget):
         # Update Tracker based on new settings
         self.opponentPageButton.setFont(QFont(self.textFont, self.textSize))
         self.settingsButton.setFont(QFont(self.textFont, self.textSize))
+        self.toggleDeckTrackerButton.setText(f'Toggle {"off" if self.showTracker else "on"} Deck Tracker')
         self.toggleDeckTrackerButton.setFont(QFont(self.textFont, self.textSize))
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
         self.setWindowOpacity(self.opacity)
@@ -573,62 +586,66 @@ class MainWindow(QWidget):
         # Update the deck list #
         ########################
 
-        if not player.hasDeckList:
-            print('not found my deck')
-            startingCardIds = getStartingCardIds(self.logFolderPath, self.assetDownloaderFilePath)
-            player.deck.setDeckList('unknown', startingCardIds)
+        decksText = ''
 
-        if not opponent.hasDeckList:
-            print('not found opponent deck')
-            [god, cardIds] = getOpponentDeck()
-            opponent.deck.setDeckList(god, cardIds)
+        if self.showTracker:
+            setPlayers()
 
-        setFirstPlayerId()
-        processCombatRecorder()
+            if not player.hasDeckList:
+                print('not found my deck')
+                startingCardIds = getStartingCardIds(self.logFolderPath, self.assetDownloaderFilePath)
+                player.deck.setDeckList('unknown', startingCardIds)
 
-        # # This means that it couldn't find the log file, so it probably doesn't exist yet. Just wait for a bit.
-        # if (startingDeckList == -1):
-        #     return
+            if not opponent.hasDeckList:
+                print('not found opponent deck')
+                [god, cardIds] = getOpponentDeck()
+                opponent.deck.setDeckList(god, cardIds)
 
-        # # This means there wasn't a legal deck in the log file
-        # elif (startingDeckList == -2):
-        #     # We can just wait, because there is only a 1-3 second delay between when the log file is refreshed to
-        #     #   when the deck should be loaded
-        #     return
+            setFirstPlayerId()
+            processCombatRecorder()
 
-        # updatedList = getCardChanges(self.logFolderPath, self.eventSolverFilePath)
+            # # This means that it couldn't find the log file, so it probably doesn't exist yet. Just wait for a bit.
+            # if (startingDeckList == -1):
+            #     return
 
-        # if (updatedList == -1):
-        #     if (self.warnedAboutLogFile):
-        #         # We are already warned about the log file, so we just need the user to update the logfile
-        #         return
-        #     else:
-        #         # We need to warn the user that the current log path isn't valid. This is extremely weird, though,
-        #         #   since we've made it past startingDeckList. If this happens, there was probably a restructuring
-        #         #   of the logs files, which would suck.
-        #         alert = QMessageBox()
-        #         alert.setText('No valid log file found. Please check path. [Debugging Code: 0102]')
-        #         alert.exec()
-        #         self.warnedAboutLogFile = True
-        #         self.warnedlogFolderPath = self.logFolderPath
-        #         return
-        # elif (updatedList == -2):
-        #     # Event solver doesn't exist yet, so just wait
-        #     return
+            # # This means there wasn't a legal deck in the log file
+            # elif (startingDeckList == -2):
+            #     # We can just wait, because there is only a 1-3 second delay between when the log file is refreshed to
+            #     #   when the deck should be loaded
+            #     return
 
-        # (drawnCards, shuffledCards) = updatedList
+            # updatedList = getCardChanges(self.logFolderPath, self.eventSolverFilePath)
 
-        # currentDeck = getCurrentDeck(startingDeckList, drawnCards, shuffledCards)
-        # opponentDeck = getOpponentDeck(self.logFolderPath)
+            # if (updatedList == -1):
+            #     if (self.warnedAboutLogFile):
+            #         # We are already warned about the log file, so we just need the user to update the logfile
+            #         return
+            #     else:
+            #         # We need to warn the user that the current log path isn't valid. This is extremely weird, though,
+            #         #   since we've made it past startingDeckList. If this happens, there was probably a restructuring
+            #         #   of the logs files, which would suck.
+            #         alert = QMessageBox()
+            #         alert.setText('No valid log file found. Please check path. [Debugging Code: 0102]')
+            #         alert.exec()
+            #         self.warnedAboutLogFile = True
+            #         self.warnedlogFolderPath = self.logFolderPath
+            #         return
+            # elif (updatedList == -2):
+            #     # Event solver doesn't exist yet, so just wait
+            #     return
 
-        decksText = getDecksStr()
+            # (drawnCards, shuffledCards) = updatedList
+
+            # currentDeck = getCurrentDeck(startingDeckList, drawnCards, shuffledCards)
+            # opponentDeck = getOpponentDeck(self.logFolderPath)
+
+            decksText = getDecksStr()
+
+        self.deckTrackerLabel.setText(decksText)
 
         if (self.showTracker):
-            self.deckTrackerLabel.setText(decksText)
             self.layout.addWidget(self.deckTrackerLabel)
-
         else:
-            self.deckTrackerLabel.setText("")
             self.layout.removeWidget(self.deckTrackerLabel)
 
         # self.setLayout(self.layout)
@@ -1029,12 +1046,6 @@ def updateTracker(configFile, updateVersion):
 
 
 if __name__ == "__main__":
-    print('start')
-    setPlayerIds()
-    player = Player(id=playerId, type="me")
-    # opponent = Player(id="3807794", type="opponent", deckCode='war,1002,1022,1024,1024,1052,1077,1077,1140,1152,1156,1172,1180,1197,1197,1206,1214,1214,1320,1320,1324,1327,1480,1484,1489,87005,87005,87027,87027,87028,87028')
-    opponent = Player(id=opponentId, type="opponent")
-
     # defaults
     defaultFont = "Helvetica"
     defaultSize = 14

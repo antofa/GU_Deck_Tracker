@@ -1,8 +1,8 @@
 textFont::==Consolas
-textSize::==10
-opacity::==1
+textSize::==9
+opacity::==0.9
 logFolderPath::==c:\Users\user\AppData\LocalLow\FuelGames\gods\
 deckTracker::==True
 updateNotify::==False
-autoUpdate::==True
+autoUpdate::==False
 justUpdated::==False
