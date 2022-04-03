@@ -24,6 +24,7 @@ from utils.net import getDeckFromAPI
 from utils.player import Player
 from utils.globals import GU_DATA, ENCODING, GU_DECKS_PLAYER_PAGE_BASE
 from utils.deck import ROW_LENGTH
+from version import VERSION as localVersion
 
 #########################
 # Global variables      #
@@ -1033,9 +1034,6 @@ if __name__ == "__main__":
     # opponent = Player(id="3807794", type="opponent", deckCode='war,1002,1022,1024,1024,1052,1077,1077,1140,1152,1156,1172,1180,1197,1197,1206,1214,1214,1320,1320,1324,1327,1480,1484,1489,87005,87005,87027,87027,87028,87028')
     opponent = Player(id=opponentId, type="opponent")
 
-    # Current Version
-    localVersion = "3-1"
-
     # defaults
     defaultFont = "Helvetica"
     defaultSize = 14
@@ -1060,7 +1058,9 @@ if __name__ == "__main__":
     #####################
 
     gitHubVersion = findGithubVersion()
-    versionComparison = compareVersions(gitHubVersion, localVersion)
+    # versionComparison = compareVersions(gitHubVersion, localVersion)
+    # skip version check for now
+    versionComparison = 0
 
     keepReference = None
 
@@ -1068,7 +1068,7 @@ if __name__ == "__main__":
     if (versionComparison > 0):
         keepReference = updateTracker(configFile, gitHubVersion)
 
-    windowTitle = "GU Deck Tracker v" + str(localVersion)
+    windowTitle = f'GU Deck Tracker {localVersion}'
 
     # Check to see if we haven't run this since updating it
     if (getConfigVal(configFile, "justUpdated") == "True"):
