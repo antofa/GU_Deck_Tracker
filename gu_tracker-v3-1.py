@@ -20,14 +20,24 @@ import json
 import pydash as py_
 from pprint import pprint
 
+from utils.net import getDeckFromAPI
+from utils.player import Player
+from utils.globals import GU_DATA, ENCODING, GU_DECKS_PLAYER_PAGE_BASE
+from utils.deck import ROW_LENGTH
+
 #########################
 # Global variables      #
 #########################
 
-# https://api.godsunchained.com/v0/proto?page=1&perPage=10000
-GU_DATA = json.load(open("./data/data.json", "r"))
-ENCODING = 'utf8'
-GU_DECKS_PLAYER_PAGE_BASE = "https://gudecks.com/meta/player-stats?userId="
+player = None
+opponent = None
+playerId = None
+opponentId = None
+firstPlayerId = None
+netDataSyncFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/netdatasync_client/netdatasync_client_info.txt"
+combatRecorderFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/Combat_Recorder/Combat_Recorder_info.txt"
+playerInfoFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/player/player_info.txt"
+outputLogSimpleFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/output_log_simple.txt"
 
 #########################
 # PyInstaller Functions #
@@ -127,28 +137,9 @@ def getConfigVal(configFile, lineHeader):
 # Tracker Functions #
 #####################
 
-# Input: The name of a card you need the mana cost for and the relative path to condensed_card_library.txt
-# Output: The mana cost of the card
-def getManaCost(name, libraryFile):
-    return 99
-
-    retNext = False
-    allCards = open(resource_path(libraryFile), "rt", encoding=ENCODING)
-
-    for line in allCards:
-        if retNext:
-            # If the previous line contained the card's name, then return
-            return int(line.split('"manaCost": ')[1].split(",")[0].strip())
-        if (name in line):
-            retNext = True
-
-    return 99
-
 # Input: The path to the GU log folder
 # Output: None
 # Additional Functionality: Opens the opponent's gudecks page in a new tab of their default browser
-
-
 def getOpponentWebpage(logFolderPath):
     logFileName = logFolderPath + "/output_log_simple.txt"
 
@@ -164,11 +155,48 @@ def getOpponentWebpage(logFolderPath):
     return -1
 
 
+def getOpponentDeck():
+    if (opponent.hasDeckList):
+        return
+
+    opponentGod = None
+
+    global outputLogSimpleFilePath
+    with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+        opponentGod = re.findall("Set God Color: (\w+)", file)[-1].lower()
+
+    print('getOpponentDeck', opponentId, opponentGod)
+
+    [opponentDeck, *cardIds] = getDeckFromAPI(opponentId, opponentGod, useMock=False).split(',')
+
+    return [opponentDeck, cardIds]
+
+    # logFileName = logFolderPath + "/output_log_simple.txt"
+
+    # if (not os.path.exists(logFileName)):
+    #     return -2
+
+    # with open(logFileName, "r", encoding=ENCODING) as f:
+    #     file = f.read()
+    #     [opponentId, opponentGod] = re.search(' o:PlayerInfo\(apolloId: (\d+).+Set God Color: (\w+)', file, re.MULTILINE | re.DOTALL).groups()
+    #     opponentId = int(opponentId)
+    #     opponentGod = opponentGod.lower()
+    #     print(opponentId, opponentGod)
+    #     opponentDeck = getDeckFromAPI(opponentId, opponentGod, useMock=False)
+    #     opponentDeck = print(opponentDeck)
+    #     # webbrowser.open((f'{GU_DECKS_PLAYER_PAGE_BASE}{opponentId}'), new=2, autoraise=True)
+    #     # exit()
+    #     return 1
+
+    return -1
+
+
 # Input: The path to the GU log folder, relative path from the log folder to the asset downloader,
 #   and the name of condensed_card_library.txt
 # Output: A list of tuples representing the player's starting deck
 # Error codes: -1 -> No valid file found; -2 -> No deck within file found
-def getStartingDeckList(logFolderPath, assetDownloaderFilePath, libraryFileName):
+def getStartingCardIds(logFolderPath, assetDownloaderFilePath):
     fullPath = logFolderPath + assetDownloaderFilePath
 
     # Can't find the log file for some reason
@@ -185,82 +213,25 @@ def getStartingDeckList(logFolderPath, assetDownloaderFilePath, libraryFileName)
                 artIdList.append(artId.upper())
                 numCardsFound += 1
 
+            # player deck = first 30 cards
             if (numCardsFound == 30):
                 break
 
-    print('artList', len(artIdList))
-    print(artIdList)
-
-    # libraryFile = open(libraryFileName, "r", encoding=ENCODING, errors="ignore")
-
-    cards = []
+    cardIds = []
 
     for artId in artIdList:
         card = py_.find(GU_DATA["records"], lambda x: x["art_id"] == artId)
-        cards.append(card)
+        cardIds.append(card["id"])
 
-    # sort the list based first on mana cost, then alphabetically
-    cards = py_.order_by(cards, ['mana', 'name'], [True, True])
+    print('cardIds', cardIds)
 
-    # pprint(cards)
-
-    cardList = []
-
-    for index, card in enumerate(cards):
-        print(f'{card["mana"]} - {card["name"]}')
-        cardIndex = py_.find_index(cardList, lambda x: x[1] == card["name"])
-
-        if cardIndex != -1:
-            cardList[cardIndex][-1] += 1
-        else:
-            cardList.append([card["id"], card["name"], card["mana"], 1])
-
-    pprint(cardList)
-
-    return cardList
-
-    # retList = []
-    # numCardsFound = 0
-    # numToAdd = 0
-    # cardName = ""
-    # numToSkip = 0
-    # for line in libraryFile:
-    #     if (numToSkip > 0):
-    #         numToSkip -= 1
-    #         continue
-
-    #     if ('"libraryId"' in line):
-    #         id = int(line.split('": ')[1].split(',')[0].strip())
-    #         #These represent special assets that aren't cards
-    #         if (id >= 100000):
-    #             numToSkip = 3
-    #     elif ('"artId"' in line):
-    #         checkId = line.split('": "')[1].split('",')[0].strip().lower()
-    #         for id in artIdList:
-    #             if (id.lower() == checkId):
-    #                 numToAdd += 1
-    #                 numCardsFound += 1
-    #     elif ('"name"' in line):
-    #         if (numToAdd > 0):
-    #             cardName = line.split('": "')[1].split('",')[0].strip()
-    #     elif ('"manaCost"' in line):
-    #         if (numToAdd > 0):
-
-    #             mana = int(line.split('": ')[1].split(',')[0].strip())
-    #             tupToAdd = (cardName, mana, numToAdd)
-    #             retList.append(tupToAdd)
-    #             numToAdd = 0
-    #             if (numCardsFound >= 30):
-    #                 # sort the list based first on mana cost, then alphabetically
-    #                 return sorted(retList, key=lambda element: (element[1], element[0]))
-    #     else:
-    #         print('not found')
-
-    return -2
+    return cardIds
 
 
 # Input: Path to event_solver_info.txt and output_log_simple.txt
 # Output: A tuple containing a list of cards drawn in index 0 and a list of cards shuffled into the deck in index 1
+
+
 def getCardChanges(logFolderPath, eventSolverFilePath):
 
     ################
@@ -286,7 +257,8 @@ def getCardChanges(logFolderPath, eventSolverFilePath):
         cardsShuffled = []
 
         # ignore known drawn cards for AI
-        rDrawn = '^.*RuntimeCard:\s+([^:]+):\d+.*zone: to Hand:(?!AI).*\(On: Client.*$'
+        # rDrawn = '^.*RuntimeCard:\s+([^:]+):\d+.*zone: to Hand:(?!AI).*\(On: Client.*$'
+        rDrawn = '^.*from Deck to Hand as Drawn Card: (.*) RuntimeID:.*$'
         for name in re.findall(rDrawn, eventFile, re.MULTILINE):
             card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
             if card:
@@ -359,81 +331,120 @@ def getCardChanges(logFolderPath, eventSolverFilePath):
     return (cardsDrawn, cardsShuffled)
 
 
-# Input: The starting deck list, a list of cards that have been drawn, and a list of cards that have been added.
-# Output: The updated deck list
-# Note - drawnCards and addedCards should simply be a list of names, not tuples
-def getCurrentDeck(startingDeckList, drawnCards, addedCards, libraryFileName):
-    print('\ngetCurrentDeck')
-    pprint(startingDeckList)
-    pprint(drawnCards)
-    pprint(addedCards)
+def getDecksStr():
+    global player, opponent
 
-    for addCard in addedCards:
-        print('addCard', addCard)
+    playerDeckLines = str(player.deck).split('\n')
+    opponentDeckLines = str(opponent.deck).split('\n')
 
-        # found = False
-        # for checkCard in startingDeckList:
-        #     # If we find the card, update it so that we have one more copy
-        #     if (addCard == checkCard[0]):
-        #         newCard = (checkCard[0], checkCard[1], (checkCard[2] + 1))
-        #         startingDeckList.remove(checkCard)
-        #         startingDeckList.append(newCard)
-        #         found = True
-        #         break
-        # # If we haven't found it, we need to add it to the deck list
-        # if (not found):
-        #     mana = getManaCost(addCard, libraryFileName)
-        #     startingDeckList.append((addCard, mana, 1))
-
-    for cardId in drawnCards:
-        print('removeCard', cardId)
-        card = py_.find(startingDeckList, lambda x: x[0] == cardId)
-
-        if card:
-            card[-1] -= 1
-
-        # found = False
-        # for checkCard in startingDeckList:
-        #     # If we find the card, update it so that we have one fewer copy. If that brings the total to 0, remove it
-        #     # and don't add it back
-        #     if (removeCard == checkCard[0]):
-        #         newCard = (checkCard[0], checkCard[1], (checkCard[2] - 1))
-        #         startingDeckList.remove(checkCard)
-        #         if (newCard[2] != 0):
-        #             startingDeckList.append(newCard)
-        #         found = True
-        #         break
-        # # If we haven't found it, this is bad (we've drawn a card that isn't in our deck) but we should still
-        # # make note of it, and put the count at -1 (because we should have -1 left in the deck).
-        # if (not found):
-        #     mana = getManaCost(removeCard, libraryFileName)
-        #     startingDeckList.append((removeCard, mana, -1))
-
-    pprint(startingDeckList)
-
-    # filter cards with positive amount
-    return py_.filter_(startingDeckList, lambda x: x[-1] > 0)
-
-    # sort the list based first on mana cost, then alphabetically
-    # return sorted(startingDeckList, key=lambda element: (element[1], element[0]))
-
-
-def deckListToText(decklist):
+    spacer = ' ' * ROW_LENGTH
     rows = []
 
-    for card in decklist:
-        [_, name, mana, amount] = card
-        rows.append(f'[{mana}]  {name}  x{amount}')
+    for index in range(max([len(playerDeckLines), len(opponentDeckLines)])):
+        rows.append(f'{py_.get(playerDeckLines, index, spacer): ^{ROW_LENGTH}}{py_.get(opponentDeckLines, index, spacer): >{ROW_LENGTH}}')
 
     return "\n".join(rows)
+
+
+def setPlayerIds():
+    global playerId, opponentId
+    if playerId and opponentId:
+        return
+
+    global playerInfoFilePath
+    with open(playerInfoFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+        playerId = int(re.search("Sending RegisterPlayer msg.*apolloID: (\d+)", file).groups()[0])
+
+    global netDataSyncFilePath
+    with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+        for currentId in re.findall("data pack received from server.*playerID:'(\d+)'.*PlayerGivenCards:Power", file):
+            currentId = int(currentId)
+            if currentId != playerId:
+                opponentId = int(currentId)
+                break
+
+    print('player ids:', playerId, opponentId)
+
+
+def setFirstPlayerId():
+    global firstPlayerId
+    if firstPlayerId:
+        return
+
+    global netDataSyncFilePath
+    with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+        firstPlayerId = int(re.search("playerID:'(\d+)', targetName:'StartTurnCardDraw", file).groups()[0])
+
+        print('firstPlayerId', firstPlayerId)
+
+
+def processCombatRecorder():
+    global firstPlayerId
+    global combatRecorderFilePath
+
+    playerIds = [player.id, opponent.id]
+
+    if (player.id != firstPlayerId):
+        playerIds = playerIds[:: -1]
+
+    # todo: rewrite this
+    cards = {
+        playerIds[0]: {
+            'drawnCardIds': [],
+            'playedCardIds': []
+        },
+        playerIds[1]: {
+            'drawnCardIds': [],
+            'playedCardIds': []
+        }
+    }
+
+    with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+
+        # todo: find 3 first drew card only (mulligan)
+        for name in re.findall('Drew Card: (.*)$', file, re.MULTILINE)[:3]:
+            # print(f'draw - {name}')
+            card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+
+            if card:
+                cards[player.id]['drawnCardIds'].append(card["id"])
+
+        turns = re.findall("^.*StartTurn[^#]*?EndTurn.*$", file, re.MULTILINE)
+
+        for (index, turn) in enumerate(turns):
+            currentPlayerId = playerIds[index % 2]
+            # print(f"\n{'_' * ROW_LENGTH}\nturn {currentPlayerId}")
+            # print(turn)
+
+            for name in re.findall('Drew Card: (.*)$', turn, re.MULTILINE):
+                # print(f'draw - {name}')
+                card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+
+                if card:
+                    cards[currentPlayerId]['drawnCardIds'].append(card["id"])
+
+            for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
+                # print(f'play - {name}')
+                card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+
+                if card:
+                    cards[currentPlayerId]['playedCardIds'].append(card["id"])
+
+    for playerId in playerIds:
+        currentPlayer = player if player.id == playerId else opponent
+        currentPlayer.deck.playedCardIds = cards[playerId]['playedCardIds']
+        currentPlayer.deck.drawnCardIds = cards[playerId]['drawnCardIds']
+
 
 #################
 # GUI Functions #
 #################
 
 # Calls getOpponentsWebpage, but if it errors, provides an error warning to the user
-
-
 def opponentsWebpage(logFolderPath):
     res = getOpponentWebpage(logFolderPath)
     if (res == -1):
@@ -456,7 +467,7 @@ def toggleConfigBoolean(configFile, toToggle):
 
 # Main Window which includes the deck tracker
 class MainWindow(QWidget):
-    def __init__(self, windowTitle, configFile, libraryFile, assetDownloaderFilePath, eventSolverFilePath):
+    def __init__(self, windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath):
         super().__init__()
 
         #################
@@ -466,7 +477,6 @@ class MainWindow(QWidget):
         # Setting all the inputs to "self.X" values so I can use it in update
         self.windowTitle = windowTitle
         self.configFile = configFile
-        self.libraryFile = libraryFile
         self.assetDownloaderFilePath = assetDownloaderFilePath
         self.eventSolverFilePath = eventSolverFilePath
 
@@ -533,6 +543,8 @@ class MainWindow(QWidget):
         # Update Preferences #
         ######################
 
+        print('update tick')
+
         # Find and set current preference values
         self.textFont = getConfigVal(configFile, "textFont")
         self.textSize = int(getConfigVal(configFile, "textSize"))
@@ -559,44 +571,58 @@ class MainWindow(QWidget):
         # Update the deck list #
         ########################
 
-        startingDeckList = getStartingDeckList(self.logFolderPath, self.assetDownloaderFilePath, self.libraryFile)
+        if not player.hasDeckList:
+            print('not found my deck')
+            startingCardIds = getStartingCardIds(self.logFolderPath, self.assetDownloaderFilePath)
+            player.deck.setDeckList('unknown', startingCardIds)
 
-        # This means that it couldn't find the log file, so it probably doesn't exist yet. Just wait for a bit.
-        if (startingDeckList == -1):
-            return
+        if not opponent.hasDeckList:
+            print('not found opponent deck')
+            [god, cardIds] = getOpponentDeck()
+            opponent.deck.setDeckList(god, cardIds)
 
-        # This means there wasn't a legal deck in the log file
-        elif (startingDeckList == -2):
-            # We can just wait, because there is only a 1-3 second delay between when the log file is refreshed to
-            #   when the deck should be loaded
-            return
+        setFirstPlayerId()
+        processCombatRecorder()
 
-        updatedList = getCardChanges(self.logFolderPath, self.eventSolverFilePath)
+        # # This means that it couldn't find the log file, so it probably doesn't exist yet. Just wait for a bit.
+        # if (startingDeckList == -1):
+        #     return
 
-        if (updatedList == -1):
-            if (self.warnedAboutLogFile):
-                # We are already warned about the log file, so we just need the user to update the logfile
-                return
-            else:
-                # We need to warn the user that the current log path isn't valid. This is extremely weird, though,
-                #   since we've made it past startingDeckList. If this happens, there was probably a restructuring
-                #   of the logs files, which would suck.
-                alert = QMessageBox()
-                alert.setText('No valid log file found. Please check path. [Debugging Code: 0102]')
-                alert.exec()
-                self.warnedAboutLogFile = True
-                self.warnedlogFolderPath = self.logFolderPath
-                return
-        elif (updatedList == -2):
-            # Event solver doesn't exist yet, so just wait
-            return
+        # # This means there wasn't a legal deck in the log file
+        # elif (startingDeckList == -2):
+        #     # We can just wait, because there is only a 1-3 second delay between when the log file is refreshed to
+        #     #   when the deck should be loaded
+        #     return
 
-        (drawnCards, shuffledCards) = updatedList
+        # updatedList = getCardChanges(self.logFolderPath, self.eventSolverFilePath)
 
-        currentDeck = getCurrentDeck(startingDeckList, drawnCards, shuffledCards, self.libraryFile)
-        currentDeckText = deckListToText(currentDeck)
+        # if (updatedList == -1):
+        #     if (self.warnedAboutLogFile):
+        #         # We are already warned about the log file, so we just need the user to update the logfile
+        #         return
+        #     else:
+        #         # We need to warn the user that the current log path isn't valid. This is extremely weird, though,
+        #         #   since we've made it past startingDeckList. If this happens, there was probably a restructuring
+        #         #   of the logs files, which would suck.
+        #         alert = QMessageBox()
+        #         alert.setText('No valid log file found. Please check path. [Debugging Code: 0102]')
+        #         alert.exec()
+        #         self.warnedAboutLogFile = True
+        #         self.warnedlogFolderPath = self.logFolderPath
+        #         return
+        # elif (updatedList == -2):
+        #     # Event solver doesn't exist yet, so just wait
+        #     return
+
+        # (drawnCards, shuffledCards) = updatedList
+
+        # currentDeck = getCurrentDeck(startingDeckList, drawnCards, shuffledCards)
+        # opponentDeck = getOpponentDeck(self.logFolderPath)
+
+        decksText = getDecksStr()
+
         if (self.showTracker):
-            self.deckTrackerLabel.setText(currentDeckText)
+            self.deckTrackerLabel.setText(decksText)
             self.layout.addWidget(self.deckTrackerLabel)
 
         else:
@@ -607,17 +633,16 @@ class MainWindow(QWidget):
         self.adjustSize()
 
     def settings(self):
-        self.tempWindow = SettingsWindow(self.windowTitle, self.configFile, self.libraryFile, self.assetDownloaderFilePath,
+        self.tempWindow = SettingsWindow(self.windowTitle, self.configFile, self.assetDownloaderFilePath,
                                          self.eventSolverFilePath)
 
 
 class SettingsWindow(QWidget):
-    def __init__(self, windowTitle, configFile, libraryFile, assetDownloaderFilePath, eventSolverFilePath):
+    def __init__(self, windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath):
         super().__init__()
 
         # Setting all the inputs to "self.X" values so I can use it in confirm
         self.configFile = configFile
-        self.libraryFile = libraryFile
         self.assetDownloaderFilePath = assetDownloaderFilePath
         self.eventSolverFilePath = eventSolverFilePath
 
@@ -1002,6 +1027,11 @@ def updateTracker(configFile, updateVersion):
 
 
 if __name__ == "__main__":
+    print('start')
+    setPlayerIds()
+    player = Player(id=playerId, type="me")
+    # opponent = Player(id="3807794", type="opponent", deckCode='war,1002,1022,1024,1024,1052,1077,1077,1140,1152,1156,1172,1180,1197,1197,1206,1214,1214,1320,1320,1324,1327,1480,1484,1489,87005,87005,87027,87027,87028,87028')
+    opponent = Player(id=opponentId, type="opponent")
 
     # Current Version
     localVersion = "3-1"
@@ -1018,9 +1048,8 @@ if __name__ == "__main__":
     # File Paths
     logPath = defaultLogFolderPath
     assetDownloaderFilePath = "/logs/latest/asset_downloader/asset_downloader_info.txt"
-    # eventSolverFilePath = "/logs/latest/event_solver/event_solver_info.txt"
-    eventSolverFilePath = "/logs/latest/runtime_card/runtime_card_info.txt"
-    libraryFile = resource_path("condensed_card_library.txt")
+    eventSolverFilePath = "/logs/latest/event_solver/event_solver_info.txt"
+    # eventSolverFilePath = "/logs/latest/runtime_card/runtime_card_info.txt"
     configFile = "config.txt"
 
     # Create a config.txt file if one does not already exist, then set current preferences based on that
@@ -1052,7 +1081,7 @@ if __name__ == "__main__":
     app = QApplication([])
     app.setStyle('Fusion')
 
-    mainWindow = MainWindow(windowTitle, configFile, libraryFile, assetDownloaderFilePath, eventSolverFilePath)
+    mainWindow = MainWindow(windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath)
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()

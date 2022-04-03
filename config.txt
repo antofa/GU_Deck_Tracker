@@ -1,4 +1,4 @@
-textFont::==Open Sans Medium
+textFont::==Consolas
 textSize::==10
 opacity::==1
 logFolderPath::==c:\Users\user\AppData\LocalLow\FuelGames\gods\
