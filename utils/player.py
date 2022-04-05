@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import pydash as py_
 
 from utils.deck import Deck

@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import pydash as py_
 from pprint import pprint, pformat
 from copy import deepcopy
@@ -53,11 +54,11 @@ class Deck(object):
         # print('__str__', self.player, self.deckCardIds, self.playedCardIds)
 
         if self.player == 'me':
-            textBlocks.extend([f'{"not drawn": ^{ROW_LENGTH}}', self.getCardListStr('notDrawnList'),
-                               f'{"played": ^{ROW_LENGTH}}', self.getCardListStr('playedList')])
+            textBlocks.extend([self.getCardListStr('notDrawnList'),
+                               self.getCardListStr('playedList')])
         else:
-            textBlocks.extend([f'{"not played": ^{ROW_LENGTH}}', self.getCardListStr('notPlayedList'),
-                               f'{"played": ^{ROW_LENGTH}}', self.getCardListStr('playedList')])
+            textBlocks.extend([self.getCardListStr('notPlayedList'),
+                               self.getCardListStr('playedList')])
 
         return f'\n{spacer}\n'.join(x for x in textBlocks)
 

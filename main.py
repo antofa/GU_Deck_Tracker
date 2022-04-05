@@ -34,11 +34,17 @@ player = None
 opponent = None
 playerId = None
 opponentId = None
+gameId = None
 firstPlayerId = None
-netDataSyncFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/netdatasync_client/netdatasync_client_info.txt"
-combatRecorderFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/Combat_Recorder/Combat_Recorder_info.txt"
-playerInfoFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/logs/latest/player/player_info.txt"
-outputLogSimpleFilePath = "c:/Users/user/AppData/LocalLow/FuelGames/gods/output_log_simple.txt"
+localLowPath = f'{os.getenv("APPDATA")}/../LocalLow/'
+guLogPath = './FuelGames/gods/logs/latest/'
+netDataSyncFilePath = f'{localLowPath}{guLogPath}/netdatasync_client/netdatasync_client_info.txt'
+combatRecorderFilePath = f'{localLowPath}{guLogPath}/Combat_Recorder/Combat_Recorder_info.txt'
+assetDownloaderFilePath = f'{localLowPath}{guLogPath}/asset_downloader/asset_downloader_info.txt'
+eventSolverFilePath = f'{localLowPath}{guLogPath}/event_solver/event_solver_info.txt'
+playerInfoFilePath = f'{localLowPath}{guLogPath}/player/player_info.txt'
+# gameNetworkManagerFilePath = f'{localLowPath}{guLogPath}/GameNetworkManager/GameNetworkManager_info.txt'
+outputLogSimpleFilePath = f'{localLowPath}{guLogPath}/../../output_log_simple.txt'
 
 #########################
 # PyInstaller Functions #
@@ -64,25 +70,6 @@ def resource_path(rel_path):
 ####################
 # Config Functions #
 ####################
-
-
-# Creates a default config.txt file if one does not exist already
-def createConfig(configFile, font, size, opacity, logFolderPath):
-    if (os.path.exists(configFile)):
-        return
-
-    conFile = open(configFile, "w", encoding=ENCODING)
-
-    conFile.write("textFont::==" + font + "\n")
-    conFile.write("textSize::==" + str(size) + "\n")
-    conFile.write("opacity::==" + str(opacity) + "\n")
-    conFile.write("logFolderPath::==" + logFolderPath + "\n")
-    conFile.write("deckTracker::==True\n")
-    conFile.write("updateNotify::==True\n")
-    conFile.write("autoUpdate::==False\n")
-    conFile.write("justUpdated::==True\n")
-
-    conFile.close()
 
 
 # Input: Config file, line of config to update, and the value to update it to.
@@ -138,22 +125,16 @@ def getConfigVal(configFile, lineHeader):
 # Tracker Functions #
 #####################
 
-# Input: The path to the GU log folder
 # Output: None
 # Additional Functionality: Opens the opponent's gudecks page in a new tab of their default browser
 def getOpponentWebpage(logFolderPath):
-    logFileName = logFolderPath + "/output_log_simple.txt"
+    global opponentId
 
-    if (not os.path.exists(logFileName)):
-        return -2
+    if (not opponentId):
+        return -1
 
-    with open(logFileName, "r", encoding=ENCODING) as f:
-        file = f.read()
-        opponentId = re.search(' o:PlayerInfo\(apolloId: (\d+)', file, re.MULTILINE).groups()[0]
-        webbrowser.open((f'{GU_DECKS_PLAYER_PAGE_BASE}{opponentId}'), new=2, autoraise=True)
-        return 1
-
-    return -1
+    webbrowser.open((f'{GU_DECKS_PLAYER_PAGE_BASE}{opponentId}'), new=2, autoraise=True)
+    return 1
 
 
 def getOpponentDeck():
@@ -173,38 +154,17 @@ def getOpponentDeck():
 
     return [opponentDeck, cardIds]
 
-    # logFileName = logFolderPath + "/output_log_simple.txt"
 
-    # if (not os.path.exists(logFileName)):
-    #     return -2
-
-    # with open(logFileName, "r", encoding=ENCODING) as f:
-    #     file = f.read()
-    #     [opponentId, opponentGod] = re.search(' o:PlayerInfo\(apolloId: (\d+).+Set God Color: (\w+)', file, re.MULTILINE | re.DOTALL).groups()
-    #     opponentId = int(opponentId)
-    #     opponentGod = opponentGod.lower()
-    #     print(opponentId, opponentGod)
-    #     opponentDeck = getDeckFromAPI(opponentId, opponentGod, useMock=False)
-    #     opponentDeck = print(opponentDeck)
-    #     # webbrowser.open((f'{GU_DECKS_PLAYER_PAGE_BASE}{opponentId}'), new=2, autoraise=True)
-    #     # exit()
-    #     return 1
-
-    return -1
-
-
-# Input: The path to the GU log folder, relative path from the log folder to the asset downloader,
-#   and the name of condensed_card_library.txt
 # Output: A list of tuples representing the player's starting deck
 # Error codes: -1 -> No valid file found; -2 -> No deck within file found
-def getStartingCardIds(logFolderPath, assetDownloaderFilePath):
-    fullPath = logFolderPath + assetDownloaderFilePath
+def getStartingCardIds():
+    global assetDownloaderFilePath
 
     # Can't find the log file for some reason
-    if (not os.path.exists(fullPath)):
+    if (not os.path.exists(assetDownloaderFilePath)):
         return -1
 
-    with open(fullPath, "r", encoding=ENCODING) as assetFile:
+    with open(assetDownloaderFilePath, "r", encoding=ENCODING) as assetFile:
         numCardsFound = 0
         artIdList = []
 
@@ -229,111 +189,11 @@ def getStartingCardIds(logFolderPath, assetDownloaderFilePath):
     return cardIds
 
 
-# Input: Path to event_solver_info.txt and output_log_simple.txt
-# Output: A tuple containing a list of cards drawn in index 0 and a list of cards shuffled into the deck in index 1
-
-
-def getCardChanges(logFolderPath, eventSolverFilePath):
-
-    ################
-    # Normal Cards #
-    ################
-
-    print('getCardChanges')
-
-    outputFile = logFolderPath + "\\output_log_simple.txt"
-    print('outputFile', outputFile)
-    print('eventSolferFile', logFolderPath + eventSolverFilePath)
-    # If this file doesn't exist, then there is an issue with the log folder path
-    if (not os.path.exists(outputFile)):
-        return -1
-
-    # If we reach this, then the log folder path is correct but event solver hasn't been created yet.
-    if (not os.path.exists(logFolderPath + eventSolverFilePath)):
-        return -2
-
-    with open(logFolderPath + eventSolverFilePath, "r", encoding=ENCODING) as f:
-        eventFile = f.read()
-        cardsDrawn = []
-        cardsShuffled = []
-
-        # ignore known drawn cards for AI
-        # rDrawn = '^.*RuntimeCard:\s+([^:]+):\d+.*zone: to Hand:(?!AI).*\(On: Client.*$'
-        rDrawn = '^.*from Deck to Hand as Drawn Card: (.*) RuntimeID:.*$'
-        for name in re.findall(rDrawn, eventFile, re.MULTILINE):
-            card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
-            if card:
-                cardsDrawn.append(card["id"])
-
-        # for line in drawnLines:
-            # print(line)
-            # print(re.search(rDrawn, line).groups())
-            # exit()
-        # for line in py_.filter_(eventFile, lambda line: re.match('Server', line)):
-        #     print(line)
-
-        # for line in eventFile:
-        #     # These are the two ways you can shuffle a card (pulled means to a specific place, usually the top or bottom,
-        #     #   but I am not tracking that yet).
-        #     if (("moved card from Hand to Deck as Shuffled Card: ") in line or
-        #             ("moved card from Hand to Deck as Pulled Card: ") in line):
-        #         cardsShuffled.append(line.split("Card: ")[1].split("RuntimeID:")[0].strip())
-
-        #     # This can either be "from Deck to Hand as Drawn Card" or "from Deck to Oblit as Obliterated Card" (in the case
-        #     #   of overdrawing)
-        #     elif ("moved card from Deck to Hand as Drawn Card" in line):
-        #         print('line', line)
-        #         cardsDrawn.append(line.split("Card: ")[1].split("RuntimeID:")[0].strip())
-
-    print('cardsDrawn', cardsDrawn)
-    print('cardsShuffled', cardsShuffled)
-
-    #################
-    # Special Cases #
-    #################
-
-    # Jason values
-    jasonActive = False
-    jasonStartText = "Delay Delve: CLIENT-Local-Human '<color=#00FF00>Jason, Medea's Muse</color>'"
-    jasonCardToAdd = "Oops"
-    jasonCardView = "TooltipHover: Init(), CardView: '"
-    jasonDelve = "[DelveOverlay.Close:716] - DelveOverlay.Close"
-
-    logFile = open(outputFile, "r", encoding=ENCODING)
-
-    for line in logFile:
-        line = line.strip()
-
-    # <JASON>
-        # if (jasonStartText in line):
-        #     jasonActive = True
-        #     continue
-
-        # # Note that this can get overwritten multiple times before becoming final, which is good.
-        # # This updates after a player hovers over a card, but only the final time before delve completion will be added
-        # elif (jasonActive and (jasonCardView in line)):
-        #     jasonCardToAdd = line.split(jasonCardView)[1][:-1]
-
-        # elif (jasonActive and (jasonDelve in line)):
-
-        #     # This message shows up twice, once for no reason, and the other right after you selected your card.
-        #     # If there has been no card selected yet, then just wait.
-        #     if (jasonCardToAdd == "Oops"):
-        #         continue
-        #     else:
-        #         # Add this card to the deck, and get ready for next jason card
-        #         cardsShuffled.append(jasonCardToAdd)
-        #         jasonCardToAdd = "Oops"
-        #         jasonActive = False
-    # </JASON>
-
-    logFile.close()
-
-    return (cardsDrawn, cardsShuffled)
-
-
 def getDecksStr():
-    global player, opponent
+    global playerId, opponentId, player, opponent
+
+    if not playerId or not opponentId:
+        return ''
 
     playerDeckLines = str(player.deck).split('\n')
     opponentDeckLines = str(opponent.deck).split('\n')
@@ -358,26 +218,22 @@ def setPlayers():
     if playerId and opponentId:
         return
 
-    global playerInfoFilePath
-    with open(playerInfoFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        playerId = int(re.search("Sending RegisterPlayer msg.*apolloID: (\d+)", file).groups()[0])
+    try:
+        global outputLogSimpleFilePath
+        with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+            file = f.read()
+            r = re.search('p:PlayerInfo\(apolloId: (\d+).* o:PlayerInfo\(apolloId: (\d+)', file, re.MULTILINE).groups()
 
-    global netDataSyncFilePath
-    with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        for currentId in re.findall("data pack received from server.*playerID:'(\d+)'.*PlayerGivenCards:Power", file):
-            currentId = int(currentId)
-            if currentId != playerId:
-                opponentId = int(currentId)
-                break
+            playerId = int(r[0])
+            prevOpponentId = opponentId = int(r[1])
 
-    print('player ids:', playerId, opponentId)
+        print('player ids:', playerId, opponentId)
 
-    global player, opponent
-    player = Player(id=playerId, type="me")
-    # opponent = Player(id="3807794", type="opponent", deckCode='war,1002,1022,1024,1024,1052,1077,1077,1140,1152,1156,1172,1180,1197,1197,1206,1214,1214,1320,1320,1324,1327,1480,1484,1489,87005,87005,87027,87027,87028,87028')
-    opponent = Player(id=opponentId, type="opponent")
+        global player, opponent
+        player = Player(id=playerId, type="me")
+        opponent = Player(id=opponentId, type="opponent")
+    except:
+        print('cant set players')
 
 
 def setFirstPlayerId():
@@ -385,12 +241,24 @@ def setFirstPlayerId():
     if firstPlayerId:
         return
 
-    global netDataSyncFilePath
-    with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        firstPlayerId = int(re.search("playerID:'(\d+)', targetName:'StartTurnCardDraw", file).groups()[0])
+    try:
+        global netDataSyncFilePath
+        with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
+            file = f.read()
+            firstPlayerId = int(re.search("playerID:'(\d+)', targetName:'StartTurnCardDraw", file).groups()[0])
+            print('firstPlayerId', firstPlayerId)
+    except:
+        print('not found firstPlayerId')
 
-        print('firstPlayerId', firstPlayerId)
+
+def getGameId():
+    global outputLogSimpleFilePath
+
+    with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+        file = f.read()
+        gameId = re.search("Command line arguments confirmed.*game_id: \$([\w-]+)", file).groups()[0]
+
+    return gameId
 
 
 def processCombatRecorder():
@@ -414,42 +282,53 @@ def processCombatRecorder():
         }
     }
 
-    with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
+    try:
+        with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
+            file = f.read()
 
-        # todo: find 3 first drew card only (mulligan)
-        for name in re.findall('Drew Card: (.*)$', file, re.MULTILINE)[:3]:
-            # print(f'draw - {name}')
-            card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
-
-            if card:
-                cards[player.id]['drawnCardIds'].append(card["id"])
-
-        turns = re.findall("^.*StartTurn[^#]*?EndTurn.*$", file, re.MULTILINE)
-
-        for (index, turn) in enumerate(turns):
-            currentPlayerId = playerIds[index % 2]
-            # print(f"\n{'_' * ROW_LENGTH}\nturn {currentPlayerId}")
-            # print(turn)
-
-            for name in re.findall('Drew Card: (.*)$', turn, re.MULTILINE):
+            # todo: find 3 first drew card only (mulligan)
+            for name in re.findall('Drew Card: (.*)$', file, re.MULTILINE)[:3]:
                 # print(f'draw - {name}')
                 card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
 
                 if card:
-                    cards[currentPlayerId]['drawnCardIds'].append(card["id"])
+                    cards[player.id]['drawnCardIds'].append(card["id"])
 
-            for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
-                # print(f'play - {name}')
-                card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+            turns = re.findall("^.*StartTurn[^#]*?EndTurn.*$", file, re.MULTILINE)
 
-                if card:
-                    cards[currentPlayerId]['playedCardIds'].append(card["id"])
+            for (index, turn) in enumerate(turns):
+                currentPlayerId = playerIds[index % 2]
+                # print(f"\n{'_' * ROW_LENGTH}\nturn {currentPlayerId}")
+                # print(turn)
 
-    for playerId in playerIds:
-        currentPlayer = player if player.id == playerId else opponent
-        currentPlayer.deck.playedCardIds = cards[playerId]['playedCardIds']
-        currentPlayer.deck.drawnCardIds = cards[playerId]['drawnCardIds']
+                for name in re.findall('Drew Card: (.*)$', turn, re.MULTILINE):
+                    # print(f'draw - {name}')
+                    card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+
+                    if card:
+                        cards[currentPlayerId]['drawnCardIds'].append(card["id"])
+
+                for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
+                    # print(f'play - {name}')
+                    card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+
+                    if card:
+                        cards[currentPlayerId]['playedCardIds'].append(card["id"])
+
+        for playerId in playerIds:
+            currentPlayer = player if player.id == playerId else opponent
+            currentPlayer.deck.playedCardIds = cards[playerId]['playedCardIds']
+            currentPlayer.deck.drawnCardIds = cards[playerId]['drawnCardIds']
+    except:
+        print('not found combat log file')
+
+        global gameId
+        currentGameId = getGameId()
+
+        if gameId != currentGameId:
+            gameId = currentGameId
+            print('new game started')
+            resetPlayersData()
 
 
 #################
@@ -480,7 +359,7 @@ def toggleConfigBoolean(configFile, key):
 
 # Main Window which includes the deck tracker
 class MainWindow(QWidget):
-    def __init__(self, windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath):
+    def __init__(self, windowTitle, configFile):
         super().__init__()
 
         #################
@@ -490,8 +369,6 @@ class MainWindow(QWidget):
         # Setting all the inputs to "self.X" values so I can use it in update
         self.windowTitle = windowTitle
         self.configFile = configFile
-        self.assetDownloaderFilePath = assetDownloaderFilePath
-        self.eventSolverFilePath = eventSolverFilePath
 
         # Find and set initial preference values
         self.textFont = getConfigVal(configFile, "textFont")
@@ -591,9 +468,12 @@ class MainWindow(QWidget):
         if self.showTracker:
             setPlayers()
 
+            if not playerId or not opponentId:
+                return
+
             if not player.hasDeckList:
                 print('not found my deck')
-                startingCardIds = getStartingCardIds(self.logFolderPath, self.assetDownloaderFilePath)
+                startingCardIds = getStartingCardIds()
                 player.deck.setDeckList('unknown', startingCardIds)
 
             if not opponent.hasDeckList:
@@ -603,18 +483,6 @@ class MainWindow(QWidget):
 
             setFirstPlayerId()
             processCombatRecorder()
-
-            # # This means that it couldn't find the log file, so it probably doesn't exist yet. Just wait for a bit.
-            # if (startingDeckList == -1):
-            #     return
-
-            # # This means there wasn't a legal deck in the log file
-            # elif (startingDeckList == -2):
-            #     # We can just wait, because there is only a 1-3 second delay between when the log file is refreshed to
-            #     #   when the deck should be loaded
-            #     return
-
-            # updatedList = getCardChanges(self.logFolderPath, self.eventSolverFilePath)
 
             # if (updatedList == -1):
             #     if (self.warnedAboutLogFile):
@@ -634,11 +502,6 @@ class MainWindow(QWidget):
             #     # Event solver doesn't exist yet, so just wait
             #     return
 
-            # (drawnCards, shuffledCards) = updatedList
-
-            # currentDeck = getCurrentDeck(startingDeckList, drawnCards, shuffledCards)
-            # opponentDeck = getOpponentDeck(self.logFolderPath)
-
             decksText = getDecksStr()
 
         self.deckTrackerLabel.setText(decksText)
@@ -652,18 +515,15 @@ class MainWindow(QWidget):
         self.adjustSize()
 
     def settings(self):
-        self.tempWindow = SettingsWindow(self.windowTitle, self.configFile, self.assetDownloaderFilePath,
-                                         self.eventSolverFilePath)
+        self.tempWindow = SettingsWindow(self.windowTitle, self.configFile)
 
 
 class SettingsWindow(QWidget):
-    def __init__(self, windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath):
+    def __init__(self, windowTitle, configFile):
         super().__init__()
 
         # Setting all the inputs to "self.X" values so I can use it in confirm
         self.configFile = configFile
-        self.assetDownloaderFilePath = assetDownloaderFilePath
-        self.eventSolverFilePath = eventSolverFilePath
 
         # Find and set current preference values
         self.textFont = getConfigVal(configFile, "textFont")
@@ -716,7 +576,8 @@ class SettingsWindow(QWidget):
         self.textFontEdit.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.textFontEdit)
 
-        self.opacityLabel = QLabel("Enter desired opacity (Currently " + str(self.opacity) + "; Range 0.25-1):")
+        self.opacityLabel = QLabel("Enter desired opacity (Currently " +
+                                   str(self.opacity) + "; Range 0.25-1):")
         self.opacityLabel.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.opacityLabel)
 
@@ -1046,24 +907,16 @@ def updateTracker(configFile, updateVersion):
 
 
 if __name__ == "__main__":
+    # retrive game id at start
+    gameId = getGameId()
+
     # defaults
     defaultFont = "Helvetica"
     defaultSize = 14
     defaultOpacity = 1
-    # taken from https://stackoverflow.com/questions/2014554/find-the-newest-folder-in-a-directory-in-python
-    log_path = "C:\\Users\\" + getpass.getuser() + "\\AppData\\LocalLow\\FuelGames"
-    sub_dirs = [(log_path + "\\" + d) for d in os.listdir(log_path) if os.path.isdir((log_path + "\\" + d))]
-    defaultLogFolderPath = max(sub_dirs, key=os.path.getmtime)
 
     # File Paths
-    logPath = defaultLogFolderPath
-    assetDownloaderFilePath = "/logs/latest/asset_downloader/asset_downloader_info.txt"
-    eventSolverFilePath = "/logs/latest/event_solver/event_solver_info.txt"
-    # eventSolverFilePath = "/logs/latest/runtime_card/runtime_card_info.txt"
     configFile = "config.txt"
-
-    # Create a config.txt file if one does not already exist, then set current preferences based on that
-    createConfig(configFile, defaultFont, defaultSize, defaultOpacity, defaultLogFolderPath)
 
     #####################
     # Check for updates #
@@ -1093,7 +946,7 @@ if __name__ == "__main__":
     app = QApplication([])
     app.setStyle('Fusion')
 
-    mainWindow = MainWindow(windowTitle, configFile, assetDownloaderFilePath, eventSolverFilePath)
+    mainWindow = MainWindow(windowTitle, configFile)
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
