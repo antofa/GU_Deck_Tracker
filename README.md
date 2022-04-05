@@ -9,10 +9,14 @@ This is your Gods Unchained Deck Tracker and still under development.
 ## Features (need helps):
 Priority highest to lowest
 
-- [x] Get Player Deck
-- [x] Get Opponent Deck
+- [x] Get player deck
+- [x] Get opponent deck
+- [x] Get opponent deck stats + archetype
 - [ ] Process shuffled cards
+- [ ] Process obliterated cards
+- [ ] Process known cards in opponent hand
 - [ ] Handle unknown cards (from future sets)
+- [ ] Get opponent player performance from last week
 - [ ] Card preview (image with description)
 - [ ] Recover update app functions (for existing users)
 
@@ -35,12 +39,12 @@ but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or 
 
 ## FAQs:<br>
 - Q: My Deck Tracker crashes as soon as I open it!<br>
-  A: That isn't a question, but try delteting your config.txt file. If that doesn't work, please reach out to me at JMoney#6100 on Discord!
+  A: That isn't a question, but try deleting your config.txt file. If that doesn't work, please reach out to me at antofa#3694 on Discord!
 
 ## Alternatives:
 - https://github.com/JMoore11235/GU_Deck_Tracker (original project)
 - https://github.com/p2etools/gu-decks-assistant (took some ideas)
 
 ## Donations:<br>
-If you're feeling extremely generous and want to support the continued development of this tracker,<br>
-ETH Address: 0xfD48bAe62a0a815bAAFEE04B2c321CA67EB34658
+If you're feeling extremely generous and want to support the continued development of this tracker:<br>
+ETH Address (ERC20): 0xfD48bAe62a0a815bAAFEE04B2c321CA67EB34658

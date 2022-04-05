@@ -714,13 +714,13 @@ def compareVersions(v1, v2):
 
 
 def findGithubVersion():
-    githubData = urllib.request.urlopen("https://github.com/JMoore11235/GU_Deck_Tracker/")
+    githubData = urllib.request.urlopen("https://github.com/antofa/GU_Deck_Tracker/")
     githubString = githubData.read().decode("utf8")
     return re.search('gu_tracker-v(.*).py" ', githubString).group(1).strip()
 
 
 def openPatchNotesWebpage():
-    webbrowser.open(("https://github.com/JMoore11235/GU_Deck_Tracker/blob/main/ChangeLog.md"), new=2, autoraise=True)
+    webbrowser.open(("https://github.com/antofa/GU_Deck_Tracker/blob/main/ChangeLog.md"), new=2, autoraise=True)
 
 
 def updateAndRestart(configFile, updateVersion):
@@ -736,19 +736,19 @@ def updateAndRestart(configFile, updateVersion):
 
     # Download the .exe
     filename, headers = urllib.request.urlretrieve(
-        "https://github.com/JMoore11235/GU_Deck_Tracker/releases/download/" + updateVersion +
+        "https://github.com/antofa/GU_Deck_Tracker/releases/download/" + updateVersion +
         "/gu_tracker-v" + updateVersion + ".exe", "gu_tracker-v" + updateVersion + ".exe")
 
     # If people want to auto update with the .py file, uncomment this out
 
     # Download the .py
     # urllib.request.urlretrieve(
-    #    "https://github.com/JMoore11235/GU_Deck_Tracker/releases/download/" + updateVersion + "/gu_tracker-v" +
+    #    "https://github.com/antofa/GU_Deck_Tracker/releases/download/" + updateVersion + "/gu_tracker-v" +
     #    updateVersion + ".py", "gu_tracker-v" + updateVersion + ".py")
     #
     # Download the condensed_card_library.txt
     # urllib.request.urlretrieve(
-    #    "https://github.com/JMoore11235/GU_Deck_Tracker/releases/download/" + updateVersion +
+    #    "https://github.com/antofa/GU_Deck_Tracker/releases/download/" + updateVersion +
     #    "/condensed_card_library.txt", "condensed_card_library.txt")
 
     # Run the new version of the tracker and end this one
@@ -923,7 +923,7 @@ if __name__ == "__main__":
     # Check for updates #
     #####################
 
-    gitHubVersion = findGithubVersion()
+    gitHubVersion = 0  # findGithubVersion()
     # versionComparison = compareVersions(gitHubVersion, localVersion)
     # skip version check for now
     versionComparison = 0
