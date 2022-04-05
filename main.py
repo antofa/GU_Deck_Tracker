@@ -150,10 +150,10 @@ def getOpponentDeck():
 
     print('getOpponentDeck', opponentId, opponentGod)
 
-    (deck, archetype) = getDeckFromAPI(opponentId, opponentGod, useMock=False)
+    (deck, archetype, stats) = getDeckFromAPI(opponentId, opponentGod, useMock=False)
     [god, *cardIds] = deck.split(',')
 
-    return (god, cardIds, archetype)
+    return (god, cardIds, archetype, stats)
 
 
 # Output: A list of tuples representing the player's starting deck
@@ -479,8 +479,8 @@ class MainWindow(QWidget):
 
             if not opponent.hasDeckList:
                 print('not found opponent deck')
-                (god, cardIds, archetype) = getOpponentDeck()
-                opponent.deck.setDeckList(god, cardIds, archetype)
+                (god, cardIds, archetype, stats) = getOpponentDeck()
+                opponent.deck.setDeckList(god, cardIds, archetype, stats)
 
             setFirstPlayerId()
             processCombatRecorder()

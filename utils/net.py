@@ -17,7 +17,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
 
     deck = None
     archetype = 'unknown'
-    opponent = None
+    stats = {}
 
     # check saved opponent
     with open('./data/opponent.json', "r", encoding=ENCODING) as f:
@@ -26,7 +26,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
 
         if py_.get(opponent, "id") == playerId and py_.get(opponent, "god") == currentGod:
             print('get opponent deck from cache', playerId)
-            return (opponent["deck"], opponent["archetype"])
+            # return (opponent["deck"], opponent["archetype"], opponent["stats"])
 
     try:
         matches = requests.get('https://gjhj0jayu2.execute-api.us-east-1.amazonaws.com/dev/meta/user',
@@ -38,9 +38,10 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
         prefix = 'winner' if lastMatch["player_won"] == playerId else 'loser'
         deck = py_.get(lastMatch, f'{prefix}_deck')
         archetype = py_.get(lastMatch, f'{prefix}_archetype')
+        stats = getDeckStatsFromAPI(playerId, deck)
 
         with open('./data/opponent.json', "w") as f:
-            f.write(json.dumps({"id": playerId, "god": currentGod, "deck": deck, "archetype": archetype}))
+            f.write(json.dumps({"id": playerId, "god": currentGod, "deck": deck, "archetype": archetype, "stats": stats}))
     except Exception as ex:
         print('cant get opponent deck')
         print(ex)
@@ -48,9 +49,24 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
         # return deck of 1 rat
         deck = '{currentGod},100071'
 
-    return (deck, archetype)
+    return (deck, archetype, stats)
+
+
+def getDeckStatsFromAPI(playerId, deck):
+    stats = {}
+
+    try:
+        stats = requests.get('https://gjhj0jayu2.execute-api.us-east-1.amazonaws.com/dev/meta/matches',
+                             params={"user": playerId, "deckstring": deck, 'condensed': True},
+                             headers={'referer': 'https://gudecks.com/', 'x-api-key': 'eUjGoNZoXireyTFOURhh5R0pbepXgoP7kwhINhh6'}
+                             ).json()[0]
+    except Exception as ex:
+        print('cant get opponent deck stats')
+        print(ex)
+
+    return stats
 
 
 if __name__ == "__main__":
-    (deck, archetype) = getDeckFromAPI(2506619, 'nature')
-    print(deck, archetype)
+    (deck, archetype, stats) = getDeckFromAPI(2506619, 'nature')
+    print(deck, archetype, stats)

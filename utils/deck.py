@@ -39,6 +39,7 @@ class Deck(object):
         self.player = py_.get(kwargs, 'player')
         self.god = 'unknown'
         self.archetype = 'unknown'
+        self.stats = {}
         self.deckCardIds = []
         self.deckList = []
         self.playedCardIds = []
@@ -48,10 +49,14 @@ class Deck(object):
 
     def __str__(self):
         title = f'{self.archetype}'
-        spacer = '_' * ROW_LENGTH
-        textBlocks = [f'{title: ^{ROW_LENGTH}}']
+        subtitle = ''
 
-        # print('__str__', self.player, self.deckCardIds, self.playedCardIds)
+        if (self.stats):
+            winrate = self.stats['userWins'] / (self.stats['userWins'] + self.stats['userLosses'])
+            subtitle = f' {self.stats["userWins"]}W / {self.stats["userLosses"]}L {winrate: .1f}%'
+
+        spacer = '_' * ROW_LENGTH
+        textBlocks = [f'{title[:NAME_LENGTH]: ^{ROW_LENGTH}}' + '\n' + f'{subtitle[:NAME_LENGTH]: ^{ROW_LENGTH}}']
 
         if self.player == 'me':
             textBlocks.extend([self.getCardListStr('notDrawnList'),
@@ -96,10 +101,11 @@ class Deck(object):
 
         return deckList
 
-    def setDeckList(self, god, cardIds, archetype='unknown'):
+    def setDeckList(self, god, cardIds, archetype='unknown', stats={}):
         self.god = god
         self.deckCardIds = cardIds
         self.archetype = archetype
+        self.stats = stats
         self.deckList = self.getDeckList(cardIds)
 
     @property
