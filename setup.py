@@ -5,8 +5,15 @@ from version import VERSION
 
 # Dependencies are automatically detected, but it might need fine tuning.
 # "packages": ["os"] is used as example only
-# build_exe_options = {"packages": ["os"], "excludes": ["tkinter"]}
-build_exe_options = {}
+# build_exe_options = {"packages": ["os"], "excludes": ["lib2to3", "logging", "test", "tkinter", "unittest", "xml", "tkinter"]}
+excludes = ["tkinter"]
+include_files = [('data/data.json', 'data/data.json'), ('data/opponent.json', 'data/opponent.json'), 'config.txt']
+options = {
+    'build_exe': {
+        'include_msvcr': True,
+        'excludes': excludes,
+        'include_files': include_files,
+    }}
 
 # base="Win32GUI" should be used only for Windows GUI app
 base = None
@@ -15,8 +22,8 @@ if sys.platform == "win32":
 
 setup(
     name="GU_Deck_Tracker",
-    version="0.1",
+    version=VERSION[1:],
     description="GU_Deck_Tracker",
-    options={"build_exe": build_exe_options},
-    executables=[Executable("main.py", base=base)],
+    options=options,
+    executables=[Executable("main.py", base=base, targetName=f'GU_Deck_Tracker_{VERSION}.exe')],
 )

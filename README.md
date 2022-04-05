@@ -17,6 +17,7 @@ Priority highest to lowest
 - [ ] Process known cards in opponent hand
 - [ ] Handle unknown cards (from future sets)
 - [ ] Get opponent player performance from last week
+- [ ] Reduce build size (qt5)
 - [ ] Card preview (image with description)
 - [ ] Recover update app functions (for existing users)
 

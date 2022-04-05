@@ -7,10 +7,10 @@
 from time import sleep
 import sys
 import webbrowser
-from PyQt5.QtWidgets import *
-from PyQt5 import QtCore as QtCore
-from PyQt5.QtCore import Qt as Qt
-from PyQt5.QtGui import *
+from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QPushButton, QLabel, QLineEdit
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QPalette, QColor
 import getpass
 import os
 import urllib.request
