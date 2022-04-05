@@ -47,7 +47,7 @@ class Deck(object):
         self.setDeckList(god, cardIds)
 
     def __str__(self):
-        title = f'{self.god} {self.player} [{self.archetype}]'
+        title = f'{self.archetype}'
         spacer = '_' * ROW_LENGTH
         textBlocks = [f'{title: ^{ROW_LENGTH}}']
 
@@ -96,9 +96,10 @@ class Deck(object):
 
         return deckList
 
-    def setDeckList(self, god, cardIds):
+    def setDeckList(self, god, cardIds, archetype='unknown'):
         self.god = god
         self.deckCardIds = cardIds
+        self.archetype = archetype
         self.deckList = self.getDeckList(cardIds)
 
     @property
