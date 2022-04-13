@@ -52,7 +52,7 @@ class Deck(object):
         subtitle = ''
 
         if (self.stats):
-            winrate = self.stats['userWins'] / (self.stats['userWins'] + self.stats['userLosses'])
+            winrate = self.stats['userWins'] / (self.stats['userWins'] + self.stats['userLosses']) * 100
             subtitle = f' {self.stats["userWins"]}W / {self.stats["userLosses"]}L {winrate: .1f}%'
 
         spacer = '_' * ROW_LENGTH

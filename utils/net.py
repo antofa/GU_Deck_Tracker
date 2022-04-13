@@ -26,7 +26,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
 
         if py_.get(opponent, "id") == playerId and py_.get(opponent, "god") == currentGod:
             print('get opponent deck from cache', playerId)
-            # return (opponent["deck"], opponent["archetype"], opponent["stats"])
+            return (opponent["deck"], opponent["archetype"], opponent["stats"])
 
     try:
         matches = requests.get('https://gjhj0jayu2.execute-api.us-east-1.amazonaws.com/dev/meta/user',
