@@ -7,7 +7,7 @@ from version import VERSION
 # "packages": ["os"] is used as example only
 # build_exe_options = {"packages": ["os"], "excludes": ["lib2to3", "logging", "test", "tkinter", "unittest", "xml", "tkinter"]}
 excludes = ["tkinter"]
-include_files = [('data/data.json', 'data/data.json'), ('data/opponent.json', 'data/opponent.json'), 'config.txt']
+include_files = [('data/data.json', 'data/data.json'), ('data/opponent.json', 'data/opponent.json'), ('media/logo.ico', 'media/logo.ico'), 'config.txt']
 options = {
     'build_exe': {
         'include_msvcr': True,
@@ -25,5 +25,5 @@ setup(
     version=VERSION[1:],
     description="GU_Deck_Tracker",
     options=options,
-    executables=[Executable("main.py", base=base, targetName=f'GU_Deck_Tracker_{VERSION}.exe')],
+    executables=[Executable('main.py', base=base, icon='./media/logo.ico', targetName=f'GU_Deck_Tracker_{VERSION}.exe')],
 )

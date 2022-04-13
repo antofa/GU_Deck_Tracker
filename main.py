@@ -10,7 +10,7 @@ import webbrowser
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QPushButton, QLabel, QLineEdit
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 import getpass
 import os
 import urllib.request
@@ -360,7 +360,7 @@ def toggleConfigBoolean(configFile, key):
 
 # Main Window which includes the deck tracker
 class MainWindow(QWidget):
-    def __init__(self, windowTitle, configFile):
+    def __init__(self, windowTitle, windowIcon, configFile):
         super().__init__()
 
         #################
@@ -369,6 +369,7 @@ class MainWindow(QWidget):
 
         # Setting all the inputs to "self.X" values so I can use it in update
         self.windowTitle = windowTitle
+        self.windowIcon = windowIcon
         self.configFile = configFile
 
         # Find and set initial preference values
@@ -394,6 +395,7 @@ class MainWindow(QWidget):
         self.tempWindow = None
         self.layout = QVBoxLayout()
         self.setWindowTitle(windowTitle)
+        self.setWindowIcon(QIcon(windowIcon))
 
         self.opponentPageButton = QPushButton("Open Opponent's GUDecks Page", self)
 
@@ -935,6 +937,7 @@ if __name__ == "__main__":
         keepReference = updateTracker(configFile, gitHubVersion)
 
     windowTitle = f'GU Deck Tracker {localVersion}'
+    windowIcon = './media/logo.ico'
 
     # Check to see if we haven't run this since updating it
     if (getConfigVal(configFile, "justUpdated") == "True"):
@@ -947,7 +950,7 @@ if __name__ == "__main__":
     app = QApplication([])
     app.setStyle('Fusion')
 
-    mainWindow = MainWindow(windowTitle, configFile)
+    mainWindow = MainWindow(windowTitle, windowIcon, configFile)
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
