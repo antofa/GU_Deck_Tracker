@@ -7,9 +7,9 @@
 from time import sleep
 import sys
 import webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QPushButton, QLabel, QLineEdit
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 import getpass
 import os
@@ -367,6 +367,8 @@ class MainWindow(QWidget):
         # Initial Setup #
         #################
 
+        self.__press_pos = QPoint()
+
         # Setting all the inputs to "self.X" values so I can use it in update
         self.windowTitle = windowTitle
         self.windowIcon = windowIcon
@@ -391,30 +393,53 @@ class MainWindow(QWidget):
         # Creation of the Main Window #
         ###############################
 
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
         self.tempWindow = None
         self.layout = QVBoxLayout()
         self.setWindowTitle(windowTitle)
         self.setWindowIcon(QIcon(windowIcon))
 
-        self.opponentPageButton = QPushButton("Open Opponent's GUDecks Page", self)
+        buttonSize = (30, 30)
+        iconSize = 12
 
+        self.layoutButtons = QHBoxLayout()
+
+        self.opponentPageButton = QPushButton("🌐", self)
+        self.opponentPageButton.setFixedSize(*buttonSize)
         # I wanted to call this, but you have to do the line beneath it instead for some reason:
         # self.opponentPageButton.clicked.connect(opponentsWebpage(logFolderPath))
         self.opponentPageButton.clicked.connect(lambda i: opponentsWebpage(self.logFolderPath))
-        self.opponentPageButton.setFont(QFont(self.textFont, self.textSize))
-        self.layout.addWidget(self.opponentPageButton)
+        self.opponentPageButton.setFont(QFont(self.textFont, iconSize))
+        self.layoutButtons.addWidget(self.opponentPageButton)
 
-        self.settingsButton = QPushButton("Settings", self)
+        self.settingsButton = QPushButton("⚙", self)
+        self.settingsButton.setFixedSize(*buttonSize)
         self.settingsButton.clicked.connect(self.settings)
-        self.settingsButton.setFont(QFont(self.textFont, self.textSize))
-        self.layout.addWidget(self.settingsButton)
+        self.settingsButton.setFont(QFont(self.textFont, iconSize))
+        self.layoutButtons.addWidget(self.settingsButton)
 
-        self.toggleDeckTrackerButton = QPushButton("Toggle Deck Tracker", self)
+        self.toggleDeckTrackerButton = QPushButton("+", self)
+        self.toggleDeckTrackerButton.setFixedSize(*buttonSize)
         self.toggleDeckTrackerButton.clicked.connect(lambda i: toggleConfigBoolean(self.configFile, "deckTracker"))
         self.toggleDeckTrackerButton.clicked.connect(self.update)
-        self.toggleDeckTrackerButton.setFont(QFont(self.textFont, self.textSize))
-        self.layout.addWidget(self.toggleDeckTrackerButton)
+        self.toggleDeckTrackerButton.setFont(QFont(self.textFont, iconSize))
+        self.layoutButtons.addWidget(self.toggleDeckTrackerButton)
+
+        self.pinButton = QPushButton("📌", self)
+        self.pinButton.setFixedSize(*buttonSize)
+        self.pinButton.setShortcut("Ctrl+d")  # shortcut key
+        # self.pinButton.clicked.connect(self.close)
+        self.pinButton.setFont(QFont(self.textFont, iconSize))
+        self.layoutButtons.addWidget(self.pinButton)
+
+        self.closeButton = QPushButton("X", self)
+        self.closeButton.setFixedSize(*buttonSize)
+        self.closeButton.setShortcut("Ctrl+q")  # shortcut key
+        self.closeButton.clicked.connect(self.close)
+        self.closeButton.setFont(QFont(self.textFont, iconSize))
+        self.layoutButtons.addWidget(self.closeButton)
+
+        self.layout.addLayout(self.layoutButtons)
 
         self.deckTrackerLabel = QLabel()
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
@@ -450,10 +475,10 @@ class MainWindow(QWidget):
             self.showTracker = False
 
         # Update Tracker based on new settings
-        self.opponentPageButton.setFont(QFont(self.textFont, self.textSize))
-        self.settingsButton.setFont(QFont(self.textFont, self.textSize))
-        self.toggleDeckTrackerButton.setText(f'Toggle {"off" if self.showTracker else "on"} Deck Tracker')
-        self.toggleDeckTrackerButton.setFont(QFont(self.textFont, self.textSize))
+        # self.opponentPageButton.setFont(QFont(self.textFont, self.textSize))
+        # self.settingsButton.setFont(QFont(self.textFont, self.textSize))
+        self.toggleDeckTrackerButton.setText("-" if self.showTracker else "+")
+        # self.toggleDeckTrackerButton.setFont(QFont(self.textFont, self.textSize))
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
         self.setWindowOpacity(self.opacity)
 
@@ -519,6 +544,18 @@ class MainWindow(QWidget):
 
     def settings(self):
         self.tempWindow = SettingsWindow(self.windowTitle, self.configFile)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.__press_pos = event.pos()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.__press_pos = QPoint()
+
+    def mouseMoveEvent(self, event):
+        if not self.__press_pos.isNull():
+            self.move(self.pos() + (event.pos() - self.__press_pos))
 
 
 class SettingsWindow(QWidget):
