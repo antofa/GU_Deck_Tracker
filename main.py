@@ -380,6 +380,13 @@ class MainWindow(QWidget):
         self.opacity = float(getConfigVal(configFile, "opacity"))
         self.logFolderPath = getConfigVal(configFile, "logFolderPath")
 
+        positionX = int(getConfigVal(configFile, "positionX"))
+        positionY = int(getConfigVal(configFile, "positionY"))
+
+        # move window to last position
+        if positionX and positionY:
+            self.move(positionX, positionY)
+
         # Always start with the deck tracker disabled, regardless of previous settings
         updateConfig(configFile, "deckTracker", False)
         self.showTracker = False
@@ -428,7 +435,7 @@ class MainWindow(QWidget):
         self.pinButton = QPushButton("📌", self)
         self.pinButton.setFixedSize(*buttonSize)
         self.pinButton.setShortcut("Ctrl+d")  # shortcut key
-        # self.pinButton.clicked.connect(self.close)
+        self.pinButton.clicked.connect(self.savePosition)
         self.pinButton.setFont(QFont(self.textFont, iconSize))
         self.layoutButtons.addWidget(self.pinButton)
 
@@ -553,6 +560,11 @@ class MainWindow(QWidget):
     def mouseMoveEvent(self, event):
         if not self.__press_pos.isNull():
             self.move(self.pos() + (event.pos() - self.__press_pos))
+
+    def savePosition(self):
+        point = self.pos()
+        updateConfig(configFile, "positionX", point.x())
+        updateConfig(configFile, "positionY", point.y())
 
 
 class SettingsWindow(QWidget):
