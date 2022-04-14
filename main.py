@@ -475,10 +475,7 @@ class MainWindow(QWidget):
             self.showTracker = False
 
         # Update Tracker based on new settings
-        # self.opponentPageButton.setFont(QFont(self.textFont, self.textSize))
-        # self.settingsButton.setFont(QFont(self.textFont, self.textSize))
         self.toggleDeckTrackerButton.setText("-" if self.showTracker else "+")
-        # self.toggleDeckTrackerButton.setFont(QFont(self.textFont, self.textSize))
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
         self.setWindowOpacity(self.opacity)
 
