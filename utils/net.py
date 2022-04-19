@@ -47,7 +47,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
         print(ex)
 
         # return deck of 1 rat
-        deck = '{currentGod},100071'
+        deck = f'{currentGod},100071'
 
     return (deck, archetype, stats)
 

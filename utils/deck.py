@@ -28,9 +28,23 @@ CARD_TYPE_CHARS = {
     'unknown': 'u'
 }
 
+CARD_UNKNOWN = {
+    "id": -1,
+    "name": "unknown",
+    "mana": 0,
+    "type": "unknown"
+}
+
 
 def getCardTypeChar(cardType):
     return py_.get(CARD_TYPE_CHARS, cardType, CARD_TYPE_CHARS["unknown"])
+
+
+def findCard(**kwargs):
+    cardId = py_.get(kwargs, 'id')
+    name = py_.get(kwargs, 'name')
+    artId = py_.get(kwargs, 'artId')
+    return py_.find(GU_DATA['records'], lambda x: x['id'] == cardId or x['name'] == name or x['art_id'] == artId) or CARD_UNKNOWN
 
 
 class Deck(object):
@@ -88,9 +102,9 @@ class Deck(object):
                 excludeIds.pop(excludeIds.index(cardId))
                 continue
 
-            card = py_.find(GU_DATA["records"], lambda x: x["id"] == cardId)
+            card = findCard(id=cardId)
 
-            cardIndex = py_.find_index(deckList, lambda x: x[INDEX_NAME] == card["name"])
+            cardIndex = py_.find_index(deckList, lambda x: x[INDEX_ID] == card["id"])
             if cardIndex != -1:
                 deckList[cardIndex][INDEX_COUNT] += 1
             else:
@@ -103,10 +117,11 @@ class Deck(object):
 
     def setDeckList(self, god, cardIds, archetype='unknown', stats={}):
         self.god = god
-        self.deckCardIds = cardIds
+        self.deckList = self.getDeckList(cardIds)
+        # save actual found card ids
+        self.deckCardIds = py_.reduce_(self.deckList, lambda memo, x: memo + [x[INDEX_ID]] * x[INDEX_COUNT], [])
         self.archetype = archetype
         self.stats = stats
-        self.deckList = self.getDeckList(cardIds)
 
     @property
     def isEmptyDeck(self):

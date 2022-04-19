@@ -23,7 +23,7 @@ from pprint import pprint
 from utils.net import getDeckFromAPI
 from utils.player import Player
 from utils.globals import GU_DATA, ENCODING, GU_DECKS_PLAYER_PAGE_BASE
-from utils.deck import ROW_LENGTH
+from utils.deck import ROW_LENGTH, findCard
 from version import VERSION as localVersion
 
 #########################
@@ -182,7 +182,7 @@ def getStartingCardIds():
     cardIds = []
 
     for artId in artIdList:
-        card = py_.find(GU_DATA["records"], lambda x: x["art_id"] == artId)
+        card = findCard(artId=artId)
         cardIds.append(card["id"])
 
     print('cardIds', cardIds)
@@ -289,8 +289,7 @@ def processCombatRecorder():
 
             # todo: find 3 first drew card only (mulligan)
             for name in re.findall('Drew Card: (.*)$', file, re.MULTILINE)[:3]:
-                # print(f'draw - {name}')
-                card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+                card = findCard(name=name)
 
                 if card:
                     cards[player.id]['drawnCardIds'].append(card["id"])
@@ -309,14 +308,14 @@ def processCombatRecorder():
 
                 for name in re.findall('Drew Card: (.*)$', turn, re.MULTILINE):
                     # print(f'draw - {name}')
-                    card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+                    card = findCard(name=name)
 
                     if card:
                         cards[currentPlayerId]['drawnCardIds'].append(card["id"])
 
                 for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
                     # print(f'play - {name}')
-                    card = py_.find(GU_DATA["records"], lambda x: x["name"] == name)
+                    card = findCard(name=name)
 
                     if card:
                         cards[currentPlayerId]['playedCardIds'].append(card["id"])
