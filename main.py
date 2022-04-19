@@ -295,7 +295,7 @@ def processCombatRecorder():
                 if card:
                     cards[player.id]['drawnCardIds'].append(card["id"])
 
-            turns = re.findall("^.*StartTurn[^#]*?EndTurn.*$", file, re.MULTILINE)
+            turns = re.findall("StartTurn.*?EndTurn", file, re.MULTILINE | re.DOTALL)
 
             for (index, turn) in enumerate(turns):
                 currentPlayerId = playerIds[index % 2]
