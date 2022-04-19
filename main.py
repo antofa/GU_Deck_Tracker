@@ -296,6 +296,11 @@ def processCombatRecorder():
                     cards[player.id]['drawnCardIds'].append(card["id"])
 
             turns = re.findall("StartTurn.*?EndTurn", file, re.MULTILINE | re.DOTALL)
+            lastTurn = file.split('StartTurn')[-1]
+
+            # add current not finished turn
+            if 'EndTurn' not in lastTurn:
+                turns.append(lastTurn)
 
             for (index, turn) in enumerate(turns):
                 currentPlayerId = playerIds[index % 2]
@@ -321,7 +326,7 @@ def processCombatRecorder():
             currentPlayer.deck.playedCardIds = cards[playerId]['playedCardIds']
             currentPlayer.deck.drawnCardIds = cards[playerId]['drawnCardIds']
     except:
-        print('not found combat log file')
+        print('error while processing combat log')
 
         global gameId
         currentGameId = getGameId()
@@ -469,7 +474,7 @@ class MainWindow(QWidget):
         # Update Preferences #
         ######################
 
-        print('update tick')
+        # print('update tick')
 
         # Find and set current preference values
         self.textFont = getConfigVal(configFile, "textFont")

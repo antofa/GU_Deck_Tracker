@@ -25,7 +25,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
         opponent = json.loads(file)
 
         if py_.get(opponent, "id") == playerId and py_.get(opponent, "god") == currentGod:
-            print('get opponent deck from cache', playerId)
+            print('found opponent deck in cache', playerId)
             return (opponent["deck"], opponent["archetype"], opponent["stats"])
 
     try:
