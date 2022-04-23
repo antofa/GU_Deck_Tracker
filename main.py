@@ -321,7 +321,7 @@ def processCombatRecorder():
                     if card["id"] == -1:
                         # don't add unknown cards to played list (cards with choice - Tracking Bolt)
                         # print('unknown', name)
-                        pass
+                        continue
 
                     if card:
                         cards[currentPlayerId]['playedCardIds'].append(card["id"])
