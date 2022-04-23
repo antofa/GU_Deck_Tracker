@@ -285,6 +285,7 @@ def processCombatRecorder():
 
     try:
         with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
+            # file = f.read().split('00:03:18.03')[0]
             file = f.read()
 
             # todo: find 3 first drew card only (mulligan)
@@ -316,6 +317,11 @@ def processCombatRecorder():
                 for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
                     # print(f'play - {name}')
                     card = findCard(name=name)
+
+                    if card["id"] == -1:
+                        # don't add unknown cards to played list (cards with choice - Tracking Bolt)
+                        # print('unknown', name)
+                        pass
 
                     if card:
                         cards[currentPlayerId]['playedCardIds'].append(card["id"])
