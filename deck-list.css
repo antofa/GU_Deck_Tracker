@@ -1,59 +1,3 @@
-# -*- coding: utf8 -*-
-import pydash as py_
-
-from utils.deck import Deck
-
-HTML_TEMPLATE = '''
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home page</title>
-    <style type="text/css">
-body {
-    background-color: #1d1d1d;
-}
-
-.hidden {
-    display: none;
-}
-
-
-.common, .common:hover{
-    color: #e6e6e6;
-}
-.common-background{
-    background-color: #e6e6e6;
-}
-.common-word-color, .common-word-color:hover{
-    color: #bdb988;
-}
-.rare, .rare:hover{
-    color: #42a5f5;
-}
-.rare-background{
-    background-color: #42a5f5;
-}
-.epic, .epic:hover{
-    color: #ba68c8;
-}
-.epic-background{
-    background-color: #ba68c8;
-}
-.legendary, .legendary:hover{
-    color: #ffca28;
-}
-.legendary-background{
-    background-color: #ffca28;
-}
-.mythic, .mythic:hover{
-    color: #ef5350
-}
-.mythic-background{
-    background-color: #ef5350
-}
-
-
 #deck-list-god-image-area{
     display: inline-block;
     margin-top: 10px;
@@ -70,16 +14,12 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-family: Consolas;
+	font-family: Consolas;
 }
 
 .deck-list-item-wrapper{
  display: flex;
  align-items: center;
-}
-
-.deck-list-item-wrapper:not(:last-child){
-    margin-bottom: 2px;
 }
 
 .deck-list-item{
@@ -99,13 +39,29 @@ body {
     filter: brightness(1.2);
 }
 
+.deck-list-item-mana{
+    display:flex;
+    justify-content: center;
+    height: 35px;
+    width: 35px;
+    font-size: 1em;
+    background-image: url(mana-icon.png);
+    background-size: contain !important;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0px 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #000, -.3px -.3px 0 #000, .3px -.3px 0 #000, -.3px .3px 0 #000, .3px .3px 0 #000;
+    z-index: 1;
+}
 .deck-list-item-name-border{
     display: flex;
-    font-size: .7em;
-    width: 250px;
-    border: 1px solid rgb(80, 80, 80);
+    font-size: .8em;
+    width: 220px;
+    border: 2px solid rgb(80, 80, 80);
+    margin-left: -1.2em;
+    padding: .2em 0 .2em 1.1em;
     position: relative;
-    padding: 5px;
 }
 .god-power-list-item-name-border{
     width: 10.5em;
@@ -173,43 +129,3 @@ body {
   margin-left: 10px;
   color:darkgrey;
  }
-
-
-
-div.tooltip img {
-  z-index:10;
-  display:none;
-  margin-top:5px;
-  background: gray;
-}
-div.tooltip:hover img{
-    display:inline; position:absolute; 
-    left: 5px;
-    background: transparent;
-}
-    </style>
-</head>
-<body>
-
-[DECKS]
-</body>
-</html>
-'''
-
-
-class Player(object):
-    # type - me, opponent
-    def __init__(self, **kwargs):
-        self.id = py_.get(kwargs, 'id')
-        self.type = py_.get(kwargs, 'type', 'me')
-        self.deck = Deck(deckCode=py_.get(kwargs, 'deckCode', ''), player=self.type)
-
-    def __str__(self):
-        return f'Player ({self.type})\n{self.deck}'
-
-    def asHtml(self):
-        return HTML_TEMPLATE.replace('[DECKS]', self.deck.asHtml())
-
-    @property
-    def hasDeckList(self):
-        return not self.deck.isEmptyDeck

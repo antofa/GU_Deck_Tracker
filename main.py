@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPu
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 import getpass
 import os
 import urllib.request
@@ -401,6 +402,8 @@ class MainWindow(QWidget):
         updateConfig(configFile, "deckTracker", False)
         self.showTracker = False
 
+        self.htmlHash = None
+
         # This is so that we don't spam the user with tons of warnings if a log file can't be found
         self.warnedAboutLogFile = False
         # This keeps track of the last log path we warned about, so we know if we should update warnedAboutLogFile
@@ -459,9 +462,16 @@ class MainWindow(QWidget):
         self.layout.addLayout(self.layoutButtons)
 
         self.deckTrackerLabel = QLabel()
+        self.deckTrackerLabel.hide()
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
         if (self.showTracker):
             self.layout.addWidget(self.deckTrackerLabel)
+
+        self.webEngineView = QWebEngineView()
+        self.webEngineView.setHtml('<div>hello</div>')
+        # self.webEngineView.setWindowFlags(Qt.FramelessWindowHint)
+        # self.webEngineView.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.layout.addWidget(self.webEngineView)
 
         self.setLayout(self.layout)
         self.show()
@@ -506,6 +516,7 @@ class MainWindow(QWidget):
         ########################
 
         decksText = ''
+        decksHtml = '<div>decks</div>'
 
         if self.showTracker:
             setPlayers()
@@ -545,8 +556,15 @@ class MainWindow(QWidget):
             #     return
 
             decksText = getDecksStr()
+            decksHtml = player.asHtml()
+            open('my_deck.html', 'wb').write(decksHtml.encode('utf8'))
 
         self.deckTrackerLabel.setText(decksText)
+
+        newHash = hash(decksHtml)
+        if (self.htmlHash != newHash):
+            self.webEngineView.setHtml(decksHtml)
+            self.htmlHash = newHash
 
         if (self.showTracker):
             self.layout.addWidget(self.deckTrackerLabel)
@@ -894,14 +912,14 @@ def showJustUpdatedWindow(configFile, updateVersion):
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))
@@ -943,14 +961,14 @@ def updateTracker(configFile, updateVersion):
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))
@@ -1010,14 +1028,14 @@ if __name__ == "__main__":
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))

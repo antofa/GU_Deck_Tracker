@@ -16,7 +16,7 @@ TEXT_MODE = False
 
 CARD_TYPE_CHARS = {
     'crystal': '♦',
-    'weapon': '⚔',
+    'weapon': '🔪',
     'creature': '🐼',
     'spell': '📜',
     'unknown': '💳'
@@ -81,6 +81,20 @@ class Deck(object):
 
         return f'\n{spacer}\n'.join(x for x in textBlocks)
 
+    def asHtml(self):
+        spacer = f'<br />'
+        # textBlocks = [f'{title[:NAME_LENGTH]: ^{ROW_LENGTH}}' + '\n' + f'{subtitle[:NAME_LENGTH]: ^{ROW_LENGTH}}']
+        blocks = []
+
+        if self.player == 'me':
+            blocks.extend([self.getCardListHtml('notDrawnList'),
+                           self.getCardListHtml('playedList')])
+        else:
+            blocks.extend([self.getCardListHtml('notPlayedList'),
+                           self.getCardListHtml('playedList')])
+
+        return f'\n{spacer}\n'.join(x for x in blocks)
+
     def getCardListStr(self, listKey='deckList'):
         cardsList = py_.get(self, listKey)
         rows = []
@@ -89,6 +103,31 @@ class Deck(object):
             rows.append(f'{mana}{getCardTypeChar("crystal")} {getCardTypeChar(cardType)} {name[:NAME_LENGTH]: <{NAME_LENGTH}} x{amount}')
 
         return "\n".join(rows)
+
+    def getCardListHtml(self, listKey='deckList'):
+        cardsList = py_.get(self, listKey)
+        rows = []
+        for card in cardsList:
+            [cardId, name, mana, cardType, amount] = card
+            rows.append(f'''
+<div class="deck-list-item-wrapper tooltip">
+  <div class="deck-list-item">
+     <div class="deck-list-item-name-area">
+        <div class="deck-list-item-name-border">
+           <div class="deck-list-item-background" style="background-image: url(&quot;https://images.godsunchained.com/art2/250/{cardId}.jpg&quot;);"></div>
+           <div class="deck-list-item-background-fade"></div>
+           <div class="deck-list-item-background-fade-right"></div>
+           <div class="deck-list-item-rarity-strip common-background"></div>
+           <div class="deck-list-item-name">{mana}{getCardTypeChar("crystal")} {getCardTypeChar(cardType)} {name}</div>
+           <div class="deck-list-item-count {amount <= 1 and "hidden"}">x{amount}</div>
+        </div>
+     </div>
+  </div>
+  <img src="https://card.godsunchained.com/?id={cardId}&q=5" />
+</div>
+            ''')
+
+        return f'<div id="deck-list">{"".join(rows)}</div>'
 
     def getDeckList(self, cardIds, excludeIds=[]):
         excludeIds = deepcopy(excludeIds)
