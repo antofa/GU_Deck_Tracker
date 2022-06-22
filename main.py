@@ -685,7 +685,7 @@ class MainWindow(QWidget):
         self.webEngineView = QWebEngineView()
         self.webEngineView.setHtml('<div>hello</div>')
         self.webEngineView.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-        self.webEngineView.setMinimumSize(430, 800)
+        self.webEngineView.setMinimumSize(400, 800)
         self.webEngineView.setZoomFactor(0.9)
         print(self.sizeHint())
         print(self.webEngineView.sizeHint())
@@ -778,11 +778,10 @@ class MainWindow(QWidget):
             #     return
 
             # decksText = getDecksStr()
-            meHtml = player.asHtml()
-            opponentHtml = opponent.asHtml()
-            decksHtml = HTML_TEMPLATE.replace(f'[me_DECKS]', meHtml).replace(f'[opponent_DECKS]', opponentHtml)
-
-            open('my_deck.html', 'wb').write(decksHtml.encode('utf8'))
+            if player and opponent and player.hasDeckList and opponent.hasDeckList:
+                meHtml = player.asHtml()
+                opponentHtml = opponent.asHtml()
+                decksHtml = HTML_TEMPLATE.replace(f'[me_DECKS]', meHtml).replace(f'[opponent_DECKS]', opponentHtml)
 
         self.deckTrackerLabel.setText(decksText)
 
