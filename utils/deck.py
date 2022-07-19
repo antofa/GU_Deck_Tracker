@@ -9,14 +9,15 @@ INDEX_ID = 0
 INDEX_NAME = 1
 INDEX_MANA = 2
 INDEX_TYPE = 3
-INDEX_COUNT = 4
+INDEX_RARITY = 4
+INDEX_COUNT = 5
 NAME_LENGTH = 20
 ROW_LENGTH = NAME_LENGTH + 9
 TEXT_MODE = False
 
 CARD_TYPE_CHARS = {
     'crystal': '♦',
-    'weapon': '⚔',
+    'weapon': '🔪',
     'creature': '🐼',
     'spell': '📜',
     'unknown': '💳'
@@ -81,14 +82,59 @@ class Deck(object):
 
         return f'\n{spacer}\n'.join(x for x in textBlocks)
 
+    def asHtml(self):
+        title = f'{self.archetype}'
+        subtitle = ''
+
+        if (self.stats):
+            winrate = self.stats['userWins'] / (self.stats['userWins'] + self.stats['userLosses']) * 100
+            subtitle = f' {self.stats["userWins"]}W / {self.stats["userLosses"]}L {winrate: .1f}%'
+
+        spacer = '_' * ROW_LENGTH
+        blocks = [f'''<div><span>{title[:NAME_LENGTH]: ^{ROW_LENGTH}}</span><span>{subtitle[:NAME_LENGTH]: ^{ROW_LENGTH}}</span></div>''']
+
+        if self.player == 'me':
+            blocks.extend([self.getCardListHtml('notDrawnList'),
+                           self.getCardListHtml('playedList')])
+        else:
+            blocks.extend([self.getCardListHtml('notPlayedList'),
+                           self.getCardListHtml('playedList')])
+
+        return f'\n'.join(x for x in blocks)
+
     def getCardListStr(self, listKey='deckList'):
         cardsList = py_.get(self, listKey)
         rows = []
         for card in cardsList:
-            [_, name, mana, cardType, amount] = card
+            [_, name, mana, cardType, rarity, amount] = card
             rows.append(f'{mana}{getCardTypeChar("crystal")} {getCardTypeChar(cardType)} {name[:NAME_LENGTH]: <{NAME_LENGTH}} x{amount}')
 
         return "\n".join(rows)
+
+    def getCardListHtml(self, listKey='deckList'):
+        cardsList = py_.get(self, listKey)
+        rows = []
+        for card in cardsList:
+            [cardId, name, mana, cardType, rarity, amount] = card
+            rows.append(f'''
+<div class="deck-list-item-wrapper tooltip tooltip-{'left' if self.god == 'unknown' else 'right'}">
+  <div class="deck-list-item">
+     <div class="deck-list-item-name-area">
+        <div class="deck-list-item-name-border">
+           <div class="deck-list-item-background" style="background-image: url(&quot;https://images.godsunchained.com/art2/250/{cardId}.jpg&quot;);"></div>
+           <div class="deck-list-item-background-fade"></div>
+           <div class="deck-list-item-background-fade-right"></div>
+           <div class="deck-list-item-rarity-strip {rarity}-background"></div>
+           <div class="deck-list-item-name">{mana}{getCardTypeChar("crystal")} {getCardTypeChar(cardType)} {name}</div>
+           <div class="deck-list-item-count {amount <= 1 and "hidden"}">x{amount}</div>
+        </div>
+     </div>
+  </div>
+  <img src="https://card.godsunchained.com/?id={cardId}&q=5" />
+</div>
+            ''')
+
+        return f'<div id="deck-list">{"".join(rows)}</div>'
 
     def getDeckList(self, cardIds, excludeIds=[]):
         excludeIds = deepcopy(excludeIds)
@@ -108,7 +154,7 @@ class Deck(object):
             if cardIndex != -1:
                 deckList[cardIndex][INDEX_COUNT] += 1
             else:
-                deckList.append([card["id"], card["name"], card["mana"], card["type"], count])
+                deckList.append([card["id"], card["name"], card["mana"], card["type"], card["rarity"], count])
 
         # sort decklist first by mana cost, then alphabetically
         deckList = py_.order_by(deckList, [INDEX_MANA, INDEX_NAME], [True, True])

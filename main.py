@@ -7,10 +7,11 @@
 from time import sleep
 import sys
 import webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QSizePolicy, QComboBox
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 import getpass
 import os
 import urllib.request
@@ -20,7 +21,7 @@ import json
 import pydash as py_
 from pprint import pprint
 
-from utils.net import getDeckFromAPI
+from utils.net import getDeckFromAPI, getPlayerIdFromLatestMatches
 from utils.player import Player
 from utils.globals import GU_DATA, ENCODING, GU_DECKS_PLAYER_PAGE_BASE
 from utils.deck import ROW_LENGTH, findCard
@@ -34,8 +35,10 @@ player = None
 opponent = None
 playerId = None
 opponentId = None
+opponentGod = 'death'
 gameId = None
 firstPlayerId = None
+needUpdateOpponentDeck = False
 localLowPath = f'{os.getenv("APPDATA")}/../LocalLow/'
 guLogPath = './FuelGames/gods/logs/latest/'
 netDataSyncFilePath = f'{localLowPath}{guLogPath}/netdatasync_client/netdatasync_client_info.txt'
@@ -45,6 +48,218 @@ eventSolverFilePath = f'{localLowPath}{guLogPath}/event_solver/event_solver_info
 playerInfoFilePath = f'{localLowPath}{guLogPath}/player/player_info.txt'
 # gameNetworkManagerFilePath = f'{localLowPath}{guLogPath}/GameNetworkManager/GameNetworkManager_info.txt'
 outputLogSimpleFilePath = f'{localLowPath}{guLogPath}/../../output_log_simple.txt'
+combatFilePath = f'{localLowPath}/FuelGames/gods/combat.log'
+
+HTML_TEMPLATE = '''
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home page</title>
+    <style type="text/css">
+body {
+    background-color: #1d1d1d;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    color: #fff;
+    font-family: Consolas;
+}
+
+.hidden {
+    display: none;
+}
+
+
+.common, .common:hover{
+    color: #e6e6e6;
+}
+.common-background{
+    background-color: #e6e6e6;
+}
+.common-word-color, .common-word-color:hover{
+    color: #bdb988;
+}
+.rare, .rare:hover{
+    color: #42a5f5;
+}
+.rare-background{
+    background-color: #42a5f5;
+}
+.epic, .epic:hover{
+    color: #ba68c8;
+}
+.epic-background{
+    background-color: #ba68c8;
+}
+.legendary, .legendary:hover{
+    color: #ffca28;
+}
+.legendary-background{
+    background-color: #ffca28;
+}
+.mythic, .mythic:hover{
+    color: #ef5350
+}
+.mythic-background{
+    background-color: #ef5350
+}
+
+
+#deck-list-god-image-area{
+    display: inline-block;
+    margin-top: 10px;
+    width: 240px;
+    height: 50px;
+    background-position: 0% -80%;
+    background-size: cover;
+    border: 3px solid #505050;
+    border-radius: 6px;
+}
+
+#deck-list{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#deck-list:not(:last-child){
+    margin-bottom: 15px;
+}
+
+.deck-list-item-wrapper{
+ display: flex;
+ align-items: center;
+}
+
+.deck-list-item-wrapper:not(:last-child){
+    margin-bottom: 2px;
+}
+
+.deck-list-item{
+    display : flex;
+    justify-content: center;
+    align-items: center;
+    color:white;
+    font-size: 1.3em;
+    cursor: pointer;
+    width: fit-content;
+}
+.deck-list-item-unowned{
+    opacity: .5;
+}
+
+.deck-list-item:hover {
+    filter: brightness(1.2);
+}
+
+.deck-list-item-name-border{
+    display: flex;
+    font-size: .7em;
+    width: 250px;
+    border: 1px solid rgb(80, 80, 80);
+    position: relative;
+    padding: 5px;
+}
+.god-power-list-item-name-border{
+    width: 10.5em;
+    border: 2px solid rgb(185, 161, 94);
+    position: relative;
+    padding: 0 0 0 1.3em;
+    border-radius: 6px;
+}
+.deck-list-item-background{
+    position: absolute;
+    background-size: cover;
+    background-position-y: 20%;
+    opacity: .9;
+    top: 0;
+    left: 45%;
+    bottom: 0;
+    right: 5%;
+    z-index: 0;
+}
+.deck-list-item-background-unowned{
+    filter:saturate(.5);
+}
+
+.deck-list-item-background-fade{
+    position: absolute;
+    background-image: linear-gradient(to right, #1d1d1d, #1d1d1d00);
+    top: 0;
+    left: 45%;
+    bottom: 0;
+    right: 30%;
+    z-index: 0;
+}
+.deck-list-item-background-fade-right{
+    position: absolute;
+    background-image: linear-gradient(to right, #1d1d1d00, #1d1d1d);
+    top: 0;
+    left: 78%;
+    bottom: 0;
+    right: 4.5%;
+    z-index: 0;
+}
+.deck-list-item-name{
+    text-overflow: ellipsis;
+    /* required for ellipsis */
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: left;
+    flex-grow: 1;
+    z-index: 1;
+}
+.deck-list-item-count{
+    margin-right: 15px;
+    z-index: 1;
+}
+.deck-list-item-rarity-strip{
+    position: absolute;
+    top: 0;
+    left: 98%;
+    bottom: 0;
+    right: 0;
+    z-index: 0;
+}
+
+.deck-list-item-percentage{
+  margin-left: 10px;
+  color:darkgrey;
+ }
+
+
+
+div.tooltip img {
+  z-index:10;
+  display:none;
+  margin-top:5px;
+  background: gray;
+}
+div.tooltip:hover img{
+    display:inline; position:absolute; 
+    top: 0px;
+    background: transparent;
+}
+div.tooltip-left:hover img{
+    right: 0px;
+}
+div.tooltip-right:hover img{
+    left: 0px;
+}
+    </style>
+</head>
+<body>
+    <div class="me">
+        [me_DECKS]
+    </div>
+    <div class="opponent">
+        [opponent_DECKS]
+    </div>
+</body>
+</html>
+'''
 
 #########################
 # PyInstaller Functions #
@@ -137,16 +352,16 @@ def getOpponentWebpage(logFolderPath):
     return 1
 
 
-def getOpponentDeck():
-    if (opponent.hasDeckList):
+def getOpponentDeck(god, needUpdate):
+    if (opponent.hasDeckList and not needUpdate):
         return
 
-    opponentGod = None
+    opponentGod = god
 
-    global outputLogSimpleFilePath
-    with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        opponentGod = re.findall("Set God Color: (\w+)", file)[-1].lower()
+    # global outputLogSimpleFilePath
+    # with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+    #     file = f.read()
+    #     opponentGod = re.findall("Set God Color: (\w+)", file)[-1].lower()
 
     print('getOpponentDeck', opponentId, opponentGod)
 
@@ -215,22 +430,21 @@ def resetPlayersData():
 
 
 def setPlayers():
-    global playerId, opponentId
-    if playerId and opponentId:
+    global playerId, opponentId, player, opponent
+    if playerId and opponentId and player and opponent:
         return
 
+    print('set players')
     try:
-        global outputLogSimpleFilePath
-        with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+        global combatFilePath
+        with open(combatFilePath, "r", encoding=ENCODING) as f:
             file = f.read()
-            r = re.search('p:PlayerInfo\(apolloId: (\d+).* o:PlayerInfo\(apolloId: (\d+)', file, re.MULTILINE).groups()
-
-            playerId = int(r[0])
-            prevOpponentId = opponentId = int(r[1])
+            names = re.findall('\| (.*) -> Event: SetGodPower', file)
+            opponentName = names[1 if names[0] == '???' else 0]
+            opponentId = int(opponentId or getPlayerIdFromLatestMatches(opponentName))
 
         print('player ids:', playerId, opponentId)
 
-        global player, opponent
         player = Player(id=playerId, type="me")
         opponent = Player(id=opponentId, type="opponent")
     except:
@@ -264,7 +478,7 @@ def getGameId():
 
 def processCombatRecorder():
     global firstPlayerId
-    global combatRecorderFilePath
+    global combatFilePath
 
     playerIds = [player.id, opponent.id]
 
@@ -284,7 +498,7 @@ def processCombatRecorder():
     }
 
     try:
-        with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
+        with open(combatFilePath, "r", encoding=ENCODING) as f:
             # file = f.read().split('00:03:18.03')[0]
             file = f.read()
 
@@ -333,13 +547,13 @@ def processCombatRecorder():
     except:
         print('error while processing combat log')
 
-        global gameId
-        currentGameId = getGameId()
+        # global gameId
+        # currentGameId = getGameId()
 
-        if gameId != currentGameId:
-            gameId = currentGameId
-            print('new game started')
-            resetPlayersData()
+        # if gameId != currentGameId:
+        #     gameId = currentGameId
+        #     print('new game started')
+        #     resetPlayersData()
 
 
 #################
@@ -365,7 +579,8 @@ def toggleConfigBoolean(configFile, key):
     updateConfig(configFile, key, not currVal)
 
     if key == 'deckTracker' and not currVal:
-        resetPlayersData()
+        # resetPlayersData()
+        pass
 
 
 # Main Window which includes the deck tracker
@@ -385,6 +600,9 @@ class MainWindow(QWidget):
         self.configFile = configFile
 
         # Find and set initial preference values
+        global playerId, firstPlayerId
+        playerId = getConfigVal(configFile, "playerId")
+        firstPlayerId = playerId
         self.textFont = getConfigVal(configFile, "textFont")
         self.textSize = int(getConfigVal(configFile, "textSize"))
         self.opacity = float(getConfigVal(configFile, "opacity"))
@@ -401,6 +619,8 @@ class MainWindow(QWidget):
         updateConfig(configFile, "deckTracker", False)
         self.showTracker = False
 
+        self.htmlHash = None
+
         # This is so that we don't spam the user with tons of warnings if a log file can't be found
         self.warnedAboutLogFile = False
         # This keeps track of the last log path we warned about, so we know if we should update warnedAboutLogFile
@@ -410,11 +630,15 @@ class MainWindow(QWidget):
         # Creation of the Main Window #
         ###############################
 
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
+        # self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.tempWindow = None
         self.layout = QVBoxLayout()
         self.setWindowTitle(windowTitle)
         self.setWindowIcon(QIcon(windowIcon))
+        self.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
 
         buttonSize = (30, 30)
         iconSize = 12
@@ -458,10 +682,47 @@ class MainWindow(QWidget):
 
         self.layout.addLayout(self.layoutButtons)
 
+        self.layoutPlayersData = QHBoxLayout()
+
+        self.opponentId = QLineEdit("")
+        self.opponentId.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.opponentId)
+
+        self.opponentGod = QComboBox()
+        self.opponentGod.addItems(["death", "deception", "light", "magic", "nature", "war"])
+        self.opponentGod.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.opponentGod)
+
+        self.confirmButton = QPushButton("V", self)
+        self.confirmButton.clicked.connect(self.confirm)
+        self.confirmButton.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.confirmButton)
+
+        self.firstPlayerButton = QPushButton("<>", self)
+        self.firstPlayerButton.clicked.connect(self.changeFirstPlayer)
+        self.firstPlayerButton.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.firstPlayerButton)
+
+        self.layout.addLayout(self.layoutPlayersData)
+
         self.deckTrackerLabel = QLabel()
+        self.deckTrackerLabel.hide()
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
         if (self.showTracker):
             self.layout.addWidget(self.deckTrackerLabel)
+
+        self.webEngineView = QWebEngineView()
+        self.webEngineView.setHtml('<div>hello</div>')
+        self.webEngineView.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.webEngineView.setMinimumSize(400, 800)
+        self.webEngineView.setZoomFactor(0.9)
+        print(self.sizeHint())
+        print(self.webEngineView.sizeHint())
+        print(self.webEngineView.size())
+        self.webEngineView.resize(self.size())
+        # self.webEngineView.setWindowFlags(Qt.FramelessWindowHint)
+        # self.webEngineView.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.layout.addWidget(self.webEngineView)
 
         self.setLayout(self.layout)
         self.show()
@@ -506,6 +767,9 @@ class MainWindow(QWidget):
         ########################
 
         decksText = ''
+        decksHtml = '<div>decks</div>'
+
+        global player, playerId, opponent, opponentId, opponentGod, needUpdateOpponentDeck
 
         if self.showTracker:
             setPlayers()
@@ -515,13 +779,18 @@ class MainWindow(QWidget):
 
             if not player.hasDeckList:
                 print('not found my deck')
-                startingCardIds = getStartingCardIds()
+                # startingCardIds = getStartingCardIds()
+                startingCardIds = [100071]
+                #startingCardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
+                #startingCardIds = [1011,1011,1012,1036,1036,1127,1127,1243,1243,1249,1250,1293,1293,1350,1352,1352,1384,1386,1392,1392,1526,1526,1532,1532,1538,1538,1542,1542,1547,1547]
                 player.deck.setDeckList('unknown', startingCardIds)
 
-            if not opponent.hasDeckList:
+            if needUpdateOpponentDeck or not opponent.hasDeckList:
                 print('not found opponent deck')
-                (god, cardIds, archetype, stats) = getOpponentDeck()
+                (god, cardIds, archetype, stats) = getOpponentDeck(opponentGod, needUpdate=needUpdateOpponentDeck)
+                # cardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
                 opponent.deck.setDeckList(god, cardIds, archetype, stats)
+                needUpdateOpponentDeck = False
 
             setFirstPlayerId()
             processCombatRecorder()
@@ -544,9 +813,18 @@ class MainWindow(QWidget):
             #     # Event solver doesn't exist yet, so just wait
             #     return
 
-            decksText = getDecksStr()
+            # decksText = getDecksStr()
+            if player and opponent and player.hasDeckList and opponent.hasDeckList:
+                meHtml = player.asHtml()
+                opponentHtml = opponent.asHtml()
+                decksHtml = HTML_TEMPLATE.replace(f'[me_DECKS]', meHtml).replace(f'[opponent_DECKS]', opponentHtml)
 
         self.deckTrackerLabel.setText(decksText)
+
+        newHash = hash(decksHtml)
+        if (self.htmlHash != newHash):
+            self.webEngineView.setHtml(decksHtml)
+            self.htmlHash = newHash
 
         if (self.showTracker):
             self.layout.addWidget(self.deckTrackerLabel)
@@ -554,7 +832,7 @@ class MainWindow(QWidget):
             self.layout.removeWidget(self.deckTrackerLabel)
 
         # self.setLayout(self.layout)
-        self.adjustSize()
+        # self.adjustSize()
 
     def settings(self):
         self.tempWindow = SettingsWindow(self.windowTitle, self.configFile)
@@ -575,6 +853,18 @@ class MainWindow(QWidget):
         point = self.pos()
         updateConfig(configFile, "positionX", point.x())
         updateConfig(configFile, "positionY", point.y())
+
+    def confirm(self):
+        global opponentId, opponentGod, needUpdateOpponentDeck
+        opponentId = int(self.opponentId.text() or opponentId)
+        opponentGod = self.opponentGod.currentText()
+        needUpdateOpponentDeck = True
+        print(f'opponent id={opponentId} god={opponentGod}')
+
+    def changeFirstPlayer(self):
+        global playerId, opponentId, firstPlayerId
+
+        firstPlayerId = playerId if firstPlayerId != playerId else opponentId
 
 
 class SettingsWindow(QWidget):
@@ -894,14 +1184,14 @@ def showJustUpdatedWindow(configFile, updateVersion):
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))
@@ -943,14 +1233,14 @@ def updateTracker(configFile, updateVersion):
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))
@@ -967,7 +1257,7 @@ def updateTracker(configFile, updateVersion):
 
 if __name__ == "__main__":
     # retrive game id at start
-    gameId = getGameId()
+    # gameId = getGameId()
 
     # defaults
     defaultFont = "Helvetica"
@@ -1010,14 +1300,14 @@ if __name__ == "__main__":
 
     # This is stolen from: https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.Window, QColor("#1d1d1d"))
     palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.Base, QColor("#808080"))
+    palette.setColor(QPalette.AlternateBase, QColor("#1d1d1d"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
     palette.setColor(QPalette.Text, Qt.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.Button, QColor("#1d1d1d"))
     palette.setColor(QPalette.ButtonText, Qt.white)
     palette.setColor(QPalette.BrightText, Qt.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))

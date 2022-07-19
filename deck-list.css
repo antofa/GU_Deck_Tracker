@@ -1,0 +1,131 @@
+#deck-list-god-image-area{
+    display: inline-block;
+    margin-top: 10px;
+    width: 240px;
+    height: 50px;
+    background-position: 0% -80%;
+    background-size: cover;
+    border: 3px solid #505050;
+    border-radius: 6px;
+}
+
+#deck-list{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+	font-family: Consolas;
+}
+
+.deck-list-item-wrapper{
+ display: flex;
+ align-items: center;
+}
+
+.deck-list-item{
+    display : flex;
+    justify-content: center;
+    align-items: center;
+    color:white;
+    font-size: 1.3em;
+    cursor: pointer;
+    width: fit-content;
+}
+.deck-list-item-unowned{
+    opacity: .5;
+}
+
+.deck-list-item:hover {
+    filter: brightness(1.2);
+}
+
+.deck-list-item-mana{
+    display:flex;
+    justify-content: center;
+    height: 35px;
+    width: 35px;
+    font-size: 1em;
+    background-image: url(mana-icon.png);
+    background-size: contain !important;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0px 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #000, -.3px -.3px 0 #000, .3px -.3px 0 #000, -.3px .3px 0 #000, .3px .3px 0 #000;
+    z-index: 1;
+}
+.deck-list-item-name-border{
+    display: flex;
+    font-size: .8em;
+    width: 220px;
+    border: 2px solid rgb(80, 80, 80);
+    margin-left: -1.2em;
+    padding: .2em 0 .2em 1.1em;
+    position: relative;
+}
+.god-power-list-item-name-border{
+    width: 10.5em;
+    border: 2px solid rgb(185, 161, 94);
+    position: relative;
+    padding: 0 0 0 1.3em;
+    border-radius: 6px;
+}
+.deck-list-item-background{
+    position: absolute;
+    background-size: cover;
+    background-position-y: 20%;
+    opacity: .9;
+    top: 0;
+    left: 45%;
+    bottom: 0;
+    right: 5%;
+    z-index: 0;
+}
+.deck-list-item-background-unowned{
+    filter:saturate(.5);
+}
+
+.deck-list-item-background-fade{
+    position: absolute;
+    background-image: linear-gradient(to right, #1d1d1d, #1d1d1d00);
+    top: 0;
+    left: 45%;
+    bottom: 0;
+    right: 30%;
+    z-index: 0;
+}
+.deck-list-item-background-fade-right{
+    position: absolute;
+    background-image: linear-gradient(to right, #1d1d1d00, #1d1d1d);
+    top: 0;
+    left: 78%;
+    bottom: 0;
+    right: 4.5%;
+    z-index: 0;
+}
+.deck-list-item-name{
+    text-overflow: ellipsis;
+    /* required for ellipsis */
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: left;
+    flex-grow: 1;
+    z-index: 1;
+}
+.deck-list-item-count{
+    margin-right: 15px;
+    z-index: 1;
+}
+.deck-list-item-rarity-strip{
+    position: absolute;
+    top: 0;
+    left: 98%;
+    bottom: 0;
+    right: 0;
+    z-index: 0;
+}
+
+.deck-list-item-percentage{
+  margin-left: 10px;
+  color:darkgrey;
+ }

@@ -14,6 +14,9 @@ class Player(object):
     def __str__(self):
         return f'Player ({self.type})\n{self.deck}'
 
+    def asHtml(self):
+        return self.deck.asHtml()
+
     @property
     def hasDeckList(self):
         return not self.deck.isEmptyDeck

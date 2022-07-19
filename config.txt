@@ -1,8 +1,11 @@
 textFont::==Consolas
-textSize::==9
-opacity::==0.9
+textSize::==10
+opacity::==0.95
 logFolderPath::==c:\Users\user\AppData\LocalLow\FuelGames\gods\
 deckTracker::==True
 updateNotify::==False
 autoUpdate::==False
 justUpdated::==False
+positionX::==-11
+positionY::==0
+playerId::==1
