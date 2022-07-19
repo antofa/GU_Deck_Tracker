@@ -13,7 +13,7 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
     if useMock:
         return MOCK_DECK_CODE
 
-    print('getDeckFromApi', playerId, currentGod)
+    print(f'getDeckFromApi id={playerId} god={currentGod}')
 
     deck = None
     archetype = 'unknown'
@@ -32,8 +32,12 @@ def getDeckFromAPI(playerId, currentGod, useMock=False):
         matches = requests.get('https://gjhj0jayu2.execute-api.us-east-1.amazonaws.com/dev/meta/user',
                                params={"userId": playerId}, headers={'referer': 'https://gudecks.com/'}).json()
 
+        print(f'{len(matches)} matches')
+
         lastMatch = py_.find(matches, lambda x: x["player_won"] == playerId and x["winner_deck"].startswith(currentGod)
                              or x["player_lost"] == playerId and x["loser_deck"].startswith(currentGod))
+
+        print('lastMatch', lastMatch)
 
         prefix = 'winner' if lastMatch["player_won"] == playerId else 'loser'
         deck = py_.get(lastMatch, f'{prefix}_deck')
@@ -67,6 +71,37 @@ def getDeckStatsFromAPI(playerId, deck):
     return stats
 
 
+def getPlayerIdFromLatestMatches(username):
+    print(f'get player id from latest matches username={username}')
+    playerId = None
+
+    try:
+        matches = requests.get('https://gjhj0jayu2.execute-api.us-east-1.amazonaws.com/dev/meta/matches',
+                               params={"username": username},
+                               headers={'referer': 'https://gudecks.com/', 'x-api-key': 'eUjGoNZoXireyTFOURhh5R0pbepXgoP7kwhINhh6'}
+                               ).json()
+
+        print(f'{len(matches)} matches')
+        print(matches)
+        exit()
+
+        lastMatch = py_.find(matches, lambda x: x["player_won_name"] == username
+                             or x["player_lost_name"] == username)
+
+        print('lastMatch', lastMatch)
+
+        prefix = 'won' if lastMatch["player_won_name"] == username else 'lost'
+        playerId = py_.get(lastMatch, f'player_{prefix}')
+    except Exception as ex:
+        print('cant find opponent id')
+        print(ex)
+
+    return playerId
+
+
 if __name__ == "__main__":
-    (deck, archetype, stats) = getDeckFromAPI(2506619, 'nature')
-    print(deck, archetype, stats)
+    pass
+    # (deck, archetype, stats) = getDeckFromAPI(2506619, 'nature')
+    # print(deck, archetype, stats)
+
+    getPlayerIdFromLatestMatches("Vladik734")

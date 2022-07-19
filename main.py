@@ -7,7 +7,7 @@
 from time import sleep
 import sys
 import webbrowser
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QLineEdit, QSizePolicy, QComboBox
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
@@ -21,7 +21,7 @@ import json
 import pydash as py_
 from pprint import pprint
 
-from utils.net import getDeckFromAPI
+from utils.net import getDeckFromAPI, getPlayerIdFromLatestMatches
 from utils.player import Player
 from utils.globals import GU_DATA, ENCODING, GU_DECKS_PLAYER_PAGE_BASE
 from utils.deck import ROW_LENGTH, findCard
@@ -35,8 +35,10 @@ player = None
 opponent = None
 playerId = None
 opponentId = None
+opponentGod = 'death'
 gameId = None
 firstPlayerId = None
+needUpdateOpponentDeck = False
 localLowPath = f'{os.getenv("APPDATA")}/../LocalLow/'
 guLogPath = './FuelGames/gods/logs/latest/'
 netDataSyncFilePath = f'{localLowPath}{guLogPath}/netdatasync_client/netdatasync_client_info.txt'
@@ -46,6 +48,7 @@ eventSolverFilePath = f'{localLowPath}{guLogPath}/event_solver/event_solver_info
 playerInfoFilePath = f'{localLowPath}{guLogPath}/player/player_info.txt'
 # gameNetworkManagerFilePath = f'{localLowPath}{guLogPath}/GameNetworkManager/GameNetworkManager_info.txt'
 outputLogSimpleFilePath = f'{localLowPath}{guLogPath}/../../output_log_simple.txt'
+combatFilePath = f'{localLowPath}/FuelGames/gods/combat.log'
 
 HTML_TEMPLATE = '''
 <html lang="en">
@@ -349,16 +352,16 @@ def getOpponentWebpage(logFolderPath):
     return 1
 
 
-def getOpponentDeck():
-    if (opponent.hasDeckList):
+def getOpponentDeck(god, needUpdate):
+    if (opponent.hasDeckList and not needUpdate):
         return
 
-    opponentGod = None
+    opponentGod = god
 
-    global outputLogSimpleFilePath
-    with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        opponentGod = re.findall("Set God Color: (\w+)", file)[-1].lower()
+    # global outputLogSimpleFilePath
+    # with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+    #     file = f.read()
+    #     opponentGod = re.findall("Set God Color: (\w+)", file)[-1].lower()
 
     print('getOpponentDeck', opponentId, opponentGod)
 
@@ -427,22 +430,21 @@ def resetPlayersData():
 
 
 def setPlayers():
-    global playerId, opponentId
-    if playerId and opponentId:
+    global playerId, opponentId, player, opponent
+    if playerId and opponentId and player and opponent:
         return
 
+    print('set players')
     try:
-        global outputLogSimpleFilePath
-        with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
+        global combatFilePath
+        with open(combatFilePath, "r", encoding=ENCODING) as f:
             file = f.read()
-            r = re.search('p:PlayerInfo\(apolloId: (\d+).* o:PlayerInfo\(apolloId: (\d+)', file, re.MULTILINE).groups()
-
-            playerId = int(r[0])
-            prevOpponentId = opponentId = int(r[1])
+            names = re.findall('\| (.*) -> Event: SetGodPower', file)
+            opponentName = names[1 if names[0] == '???' else 0]
+            opponentId = int(opponentId or getPlayerIdFromLatestMatches(opponentName))
 
         print('player ids:', playerId, opponentId)
 
-        global player, opponent
         player = Player(id=playerId, type="me")
         opponent = Player(id=opponentId, type="opponent")
     except:
@@ -476,7 +478,7 @@ def getGameId():
 
 def processCombatRecorder():
     global firstPlayerId
-    global combatRecorderFilePath
+    global combatFilePath
 
     playerIds = [player.id, opponent.id]
 
@@ -496,7 +498,7 @@ def processCombatRecorder():
     }
 
     try:
-        with open(combatRecorderFilePath, "r", encoding=ENCODING) as f:
+        with open(combatFilePath, "r", encoding=ENCODING) as f:
             # file = f.read().split('00:03:18.03')[0]
             file = f.read()
 
@@ -545,13 +547,13 @@ def processCombatRecorder():
     except:
         print('error while processing combat log')
 
-        global gameId
-        currentGameId = getGameId()
+        # global gameId
+        # currentGameId = getGameId()
 
-        if gameId != currentGameId:
-            gameId = currentGameId
-            print('new game started')
-            resetPlayersData()
+        # if gameId != currentGameId:
+        #     gameId = currentGameId
+        #     print('new game started')
+        #     resetPlayersData()
 
 
 #################
@@ -577,7 +579,8 @@ def toggleConfigBoolean(configFile, key):
     updateConfig(configFile, key, not currVal)
 
     if key == 'deckTracker' and not currVal:
-        resetPlayersData()
+        # resetPlayersData()
+        pass
 
 
 # Main Window which includes the deck tracker
@@ -597,6 +600,9 @@ class MainWindow(QWidget):
         self.configFile = configFile
 
         # Find and set initial preference values
+        global playerId, firstPlayerId
+        playerId = getConfigVal(configFile, "playerId")
+        firstPlayerId = playerId
         self.textFont = getConfigVal(configFile, "textFont")
         self.textSize = int(getConfigVal(configFile, "textSize"))
         self.opacity = float(getConfigVal(configFile, "opacity"))
@@ -676,6 +682,29 @@ class MainWindow(QWidget):
 
         self.layout.addLayout(self.layoutButtons)
 
+        self.layoutPlayersData = QHBoxLayout()
+
+        self.opponentId = QLineEdit("")
+        self.opponentId.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.opponentId)
+
+        self.opponentGod = QComboBox()
+        self.opponentGod.addItems(["death", "deception", "light", "magic", "nature", "war"])
+        self.opponentGod.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.opponentGod)
+
+        self.confirmButton = QPushButton("V", self)
+        self.confirmButton.clicked.connect(self.confirm)
+        self.confirmButton.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.confirmButton)
+
+        self.firstPlayerButton = QPushButton("<>", self)
+        self.firstPlayerButton.clicked.connect(self.changeFirstPlayer)
+        self.firstPlayerButton.setFont(QFont(self.textFont, self.textSize))
+        self.layoutPlayersData.addWidget(self.firstPlayerButton)
+
+        self.layout.addLayout(self.layoutPlayersData)
+
         self.deckTrackerLabel = QLabel()
         self.deckTrackerLabel.hide()
         self.deckTrackerLabel.setFont(QFont(self.textFont, self.textSize))
@@ -740,6 +769,8 @@ class MainWindow(QWidget):
         decksText = ''
         decksHtml = '<div>decks</div>'
 
+        global player, playerId, opponent, opponentId, opponentGod, needUpdateOpponentDeck
+
         if self.showTracker:
             setPlayers()
 
@@ -748,13 +779,18 @@ class MainWindow(QWidget):
 
             if not player.hasDeckList:
                 print('not found my deck')
-                startingCardIds = getStartingCardIds()
+                # startingCardIds = getStartingCardIds()
+                startingCardIds = [100071]
+                #startingCardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
+                #startingCardIds = [1011,1011,1012,1036,1036,1127,1127,1243,1243,1249,1250,1293,1293,1350,1352,1352,1384,1386,1392,1392,1526,1526,1532,1532,1538,1538,1542,1542,1547,1547]
                 player.deck.setDeckList('unknown', startingCardIds)
 
-            if not opponent.hasDeckList:
+            if needUpdateOpponentDeck or not opponent.hasDeckList:
                 print('not found opponent deck')
-                (god, cardIds, archetype, stats) = getOpponentDeck()
+                (god, cardIds, archetype, stats) = getOpponentDeck(opponentGod, needUpdate=needUpdateOpponentDeck)
+                # cardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
                 opponent.deck.setDeckList(god, cardIds, archetype, stats)
+                needUpdateOpponentDeck = False
 
             setFirstPlayerId()
             processCombatRecorder()
@@ -817,6 +853,18 @@ class MainWindow(QWidget):
         point = self.pos()
         updateConfig(configFile, "positionX", point.x())
         updateConfig(configFile, "positionY", point.y())
+
+    def confirm(self):
+        global opponentId, opponentGod, needUpdateOpponentDeck
+        opponentId = int(self.opponentId.text() or opponentId)
+        opponentGod = self.opponentGod.currentText()
+        needUpdateOpponentDeck = True
+        print(f'opponent id={opponentId} god={opponentGod}')
+
+    def changeFirstPlayer(self):
+        global playerId, opponentId, firstPlayerId
+
+        firstPlayerId = playerId if firstPlayerId != playerId else opponentId
 
 
 class SettingsWindow(QWidget):
@@ -1209,7 +1257,7 @@ def updateTracker(configFile, updateVersion):
 
 if __name__ == "__main__":
     # retrive game id at start
-    gameId = getGameId()
+    # gameId = getGameId()
 
     # defaults
     defaultFont = "Helvetica"
