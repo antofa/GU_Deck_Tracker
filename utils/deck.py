@@ -114,10 +114,12 @@ class Deck(object):
     def getCardListHtml(self, listKey='deckList'):
         cardsList = py_.get(self, listKey)
         rows = []
-        for card in cardsList:
+        halveIndex = int(len(cardsList) / 2)
+        for (index, card) in enumerate(cardsList):
             [cardId, name, mana, cardType, rarity, amount] = card
+            # TODO: bottom tooltip position
             rows.append(f'''
-<div class="deck-list-item-wrapper tooltip tooltip-{'left' if self.god == 'unknown' else 'right'}">
+<div class="deck-list-item-wrapper tooltip tooltip-{'left' if self.god == 'unknown' else 'right'} tooltip-{'top' if index < halveIndex else 'top'}">
   <div class="deck-list-item">
      <div class="deck-list-item-name-area">
         <div class="deck-list-item-name-border">

@@ -40,15 +40,12 @@ gameId = None
 firstPlayerId = None
 needUpdateOpponentDeck = False
 localLowPath = f'{os.getenv("APPDATA")}/../LocalLow/'
-guLogPath = './FuelGames/gods/logs/latest/'
+guLogPath = './Immutable/gods/'
 netDataSyncFilePath = f'{localLowPath}{guLogPath}/netdatasync_client/netdatasync_client_info.txt'
-combatRecorderFilePath = f'{localLowPath}{guLogPath}/Combat_Recorder/Combat_Recorder_info.txt'
 assetDownloaderFilePath = f'{localLowPath}{guLogPath}/asset_downloader/asset_downloader_info.txt'
-eventSolverFilePath = f'{localLowPath}{guLogPath}/event_solver/event_solver_info.txt'
-playerInfoFilePath = f'{localLowPath}{guLogPath}/player/player_info.txt'
-# gameNetworkManagerFilePath = f'{localLowPath}{guLogPath}/GameNetworkManager/GameNetworkManager_info.txt'
+debugFilePath = f'{localLowPath}{guLogPath}/debug.log'
 outputLogSimpleFilePath = f'{localLowPath}{guLogPath}/../../output_log_simple.txt'
-combatFilePath = f'{localLowPath}/FuelGames/gods/combat.log'
+combatFilePath = f'{localLowPath}{guLogPath}/combat.log'
 
 HTML_TEMPLATE = '''
 <html lang="en">
@@ -125,7 +122,7 @@ body {
 }
 
 #deck-list:not(:last-child){
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 .deck-list-item-wrapper{
@@ -134,7 +131,7 @@ body {
 }
 
 .deck-list-item-wrapper:not(:last-child){
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .deck-list-item{
@@ -232,13 +229,13 @@ body {
 
 
 div.tooltip img {
-  z-index:10;
-  display:none;
-  margin-top:5px;
+  z-index: 10;
+  display: none;
   background: gray;
+  height: 400px;
 }
 div.tooltip:hover img{
-    display:inline; position:absolute; 
+    display:inline; position:absolute;
     top: 0px;
     background: transparent;
 }
@@ -247,6 +244,12 @@ div.tooltip-left:hover img{
 }
 div.tooltip-right:hover img{
     left: 0px;
+}
+div.tooltip-top:hover img{
+    top: 300px;
+}
+div.tooltip-bottom:hover img{
+    bottom: 0px;
 }
     </style>
 </head>
@@ -365,7 +368,8 @@ def getOpponentDeck(god, needUpdate):
 
     print('getOpponentDeck', opponentId, opponentGod)
 
-    (deck, archetype, stats) = getDeckFromAPI(opponentId, opponentGod, useMock=False)
+    (deck, archetype, stats) = getDeckFromAPI(
+        opponentId, opponentGod, useMock=False)
     [god, *cardIds] = deck.split(',')
 
     return (god, cardIds, archetype, stats)
@@ -374,6 +378,9 @@ def getOpponentDeck(god, needUpdate):
 # Output: A list of tuples representing the player's starting deck
 # Error codes: -1 -> No valid file found; -2 -> No deck within file found
 def getStartingCardIds():
+    # TODO: get actual player cards
+    return [100071]
+
     global assetDownloaderFilePath
 
     # Can't find the log file for some reason
@@ -430,20 +437,22 @@ def resetPlayersData():
 
 
 def setPlayers():
-    global playerId, opponentId, player, opponent
+    global playerId, opponentId, player, opponent, opponentGod
     if playerId and opponentId and player and opponent:
         return
 
     print('set players')
     try:
-        global combatFilePath
-        with open(combatFilePath, "r", encoding=ENCODING) as f:
+        global debugFilePath
+        with open(debugFilePath, "r", encoding=ENCODING) as f:
             file = f.read()
-            names = re.findall('\| (.*) -> Event: SetGodPower', file)
-            opponentName = names[1 if names[0] == '???' else 0]
-            opponentId = int(opponentId or getPlayerIdFromLatestMatches(opponentName))
+            ids = re.search(
+                "Initialising.*?p:PlayerInfo\(apolloId:\s(\d+).*?o:PlayerInfo\(apolloId:\s(\d+)", file).groups()
+            playerId = int(ids[0])
+            opponentId = int(ids[1])
+            opponentGod = re.search(f"playerID:'{opponentId}'.*targetGod:'(\w+)'", file).groups()[0].lower()
 
-        print('player ids:', playerId, opponentId)
+        print(f'player ids: {playerId} vs {opponentId} ({opponentGod})')
 
         player = Player(id=playerId, type="me")
         opponent = Player(id=opponentId, type="opponent")
@@ -457,23 +466,28 @@ def setFirstPlayerId():
         return
 
     try:
-        global netDataSyncFilePath
-        with open(netDataSyncFilePath, "r", encoding=ENCODING) as f:
+        global debugFilePath
+        with open(debugFilePath, "r", encoding=ENCODING) as f:
             file = f.read()
-            firstPlayerId = int(re.search("playerID:'(\d+)', targetName:'StartTurnCardDraw", file).groups()[0])
+            firstPlayerId = int(
+                re.search("playerID:'(\d+)'.*targetName:'StartTurnCardDraw'", file).groups()[0])
             print('firstPlayerId', firstPlayerId)
     except:
         print('not found firstPlayerId')
 
 
 def getGameId():
-    global outputLogSimpleFilePath
+    try:
+        global debugFilePath
+        with open(debugFilePath, "r", encoding=ENCODING) as f:
+            file = f.read()
+            gameId = re.search("gameID:\s'([\w-]+)'", file).groups()[0]
 
-    with open(outputLogSimpleFilePath, "r", encoding=ENCODING) as f:
-        file = f.read()
-        gameId = re.search("Command line arguments confirmed.*game_id: \$([\w-]+)", file).groups()[0]
+        print(f"gameId {gameId}")
 
-    return gameId
+        return gameId
+    except:
+        print('cant get game id')
 
 
 def processCombatRecorder():
@@ -502,6 +516,8 @@ def processCombatRecorder():
             # file = f.read().split('00:03:18.03')[0]
             file = f.read()
 
+            # print(cards)
+
             # todo: find 3 first drew card only (mulligan)
             for name in re.findall('Drew Card: (.*)$', file, re.MULTILINE)[:3]:
                 card = findCard(name=name)
@@ -509,8 +525,9 @@ def processCombatRecorder():
                 if card:
                     cards[player.id]['drawnCardIds'].append(card["id"])
 
-            turns = re.findall("StartTurn.*?EndTurn", file, re.MULTILINE | re.DOTALL)
-            lastTurn = file.split('StartTurn')[-1]
+            turns = re.findall("Event:\sDraw.*?EndTurn", file,
+                               re.MULTILINE | re.DOTALL)
+            lastTurn = file.split('StatEvent: Refresh')[-1]
 
             # add current not finished turn
             if 'EndTurn' not in lastTurn:
@@ -526,11 +543,12 @@ def processCombatRecorder():
                     card = findCard(name=name)
 
                     if card:
-                        cards[currentPlayerId]['drawnCardIds'].append(card["id"])
+                        cards[currentPlayerId]['drawnCardIds'].append(
+                            card["id"])
 
-                for name in re.findall('Played \| Card: (.*)$', turn, re.MULTILINE):
+                for name in re.findall('Played \| Card: (.*)\|$', turn, re.MULTILINE):
                     # print(f'play - {name}')
-                    card = findCard(name=name)
+                    card = findCard(name=name.strip())
 
                     if card["id"] == -1:
                         # don't add unknown cards to played list (cards with choice - Tracking Bolt)
@@ -538,22 +556,27 @@ def processCombatRecorder():
                         continue
 
                     if card:
-                        cards[currentPlayerId]['playedCardIds'].append(card["id"])
+                        cards[currentPlayerId]['playedCardIds'].append(
+                            card["id"])
+
+            # pprint(cards)
+            # sys.exit()
 
         for playerId in playerIds:
             currentPlayer = player if player.id == playerId else opponent
             currentPlayer.deck.playedCardIds = cards[playerId]['playedCardIds']
             currentPlayer.deck.drawnCardIds = cards[playerId]['drawnCardIds']
-    except:
+    except Exception as ex:
+        print(ex)
         print('error while processing combat log')
 
-        # global gameId
-        # currentGameId = getGameId()
+        global gameId
+        currentGameId = getGameId()
 
-        # if gameId != currentGameId:
-        #     gameId = currentGameId
-        #     print('new game started')
-        #     resetPlayersData()
+        if gameId != currentGameId:
+            gameId = currentGameId
+            print('new game started')
+            resetPlayersData()
 
 
 #################
@@ -565,11 +588,13 @@ def opponentsWebpage(logFolderPath):
     res = getOpponentWebpage(logFolderPath)
     if (res == -1):
         alert = QMessageBox()
-        alert.setText('Opponent User ID Not Found. Please try again in a few seconds. [Debugging Code: 0201]')
+        alert.setText(
+            'Opponent User ID Not Found. Please try again in a few seconds. [Debugging Code: 0201]')
         alert.exec()
     elif (res == -2):
         alert = QMessageBox()
-        alert.setText('No valid log file found. Please check path. [Debugging Code: 0202]')
+        alert.setText(
+            'No valid log file found. Please check path. [Debugging Code: 0202]')
         alert.exec()
 
 
@@ -579,7 +604,7 @@ def toggleConfigBoolean(configFile, key):
     updateConfig(configFile, key, not currVal)
 
     if key == 'deckTracker' and not currVal:
-        # resetPlayersData()
+        resetPlayersData()
         pass
 
 
@@ -601,8 +626,8 @@ class MainWindow(QWidget):
 
         # Find and set initial preference values
         global playerId, firstPlayerId
-        playerId = getConfigVal(configFile, "playerId")
-        firstPlayerId = playerId
+        # playerId = getConfigVal(configFile, "playerId")
+        # firstPlayerId = playerId
         self.textFont = getConfigVal(configFile, "textFont")
         self.textSize = int(getConfigVal(configFile, "textSize"))
         self.opacity = float(getConfigVal(configFile, "opacity"))
@@ -649,7 +674,8 @@ class MainWindow(QWidget):
         self.opponentPageButton.setFixedSize(*buttonSize)
         # I wanted to call this, but you have to do the line beneath it instead for some reason:
         # self.opponentPageButton.clicked.connect(opponentsWebpage(logFolderPath))
-        self.opponentPageButton.clicked.connect(lambda i: opponentsWebpage(self.logFolderPath))
+        self.opponentPageButton.clicked.connect(
+            lambda i: opponentsWebpage(self.logFolderPath))
         self.opponentPageButton.setFont(QFont(self.textFont, iconSize))
         self.layoutButtons.addWidget(self.opponentPageButton)
 
@@ -661,7 +687,8 @@ class MainWindow(QWidget):
 
         self.toggleDeckTrackerButton = QPushButton("+", self)
         self.toggleDeckTrackerButton.setFixedSize(*buttonSize)
-        self.toggleDeckTrackerButton.clicked.connect(lambda i: toggleConfigBoolean(self.configFile, "deckTracker"))
+        self.toggleDeckTrackerButton.clicked.connect(
+            lambda i: toggleConfigBoolean(self.configFile, "deckTracker"))
         self.toggleDeckTrackerButton.clicked.connect(self.update)
         self.toggleDeckTrackerButton.setFont(QFont(self.textFont, iconSize))
         self.layoutButtons.addWidget(self.toggleDeckTrackerButton)
@@ -689,7 +716,8 @@ class MainWindow(QWidget):
         self.layoutPlayersData.addWidget(self.opponentId)
 
         self.opponentGod = QComboBox()
-        self.opponentGod.addItems(["death", "deception", "light", "magic", "nature", "war"])
+        self.opponentGod.addItems(
+            ["death", "deception", "light", "magic", "nature", "war"])
         self.opponentGod.setFont(QFont(self.textFont, self.textSize))
         self.layoutPlayersData.addWidget(self.opponentGod)
 
@@ -713,8 +741,10 @@ class MainWindow(QWidget):
 
         self.webEngineView = QWebEngineView()
         self.webEngineView.setHtml('<div>hello</div>')
-        self.webEngineView.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-        self.webEngineView.setMinimumSize(400, 800)
+        self.webEngineView.setSizePolicy(
+            QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.webEngineView.setMinimumSize(400, 900)
+        # self.webEngineView.setMinimumSize(400, 620)
         self.webEngineView.setZoomFactor(0.9)
         print(self.sizeHint())
         print(self.webEngineView.sizeHint())
@@ -774,50 +804,32 @@ class MainWindow(QWidget):
         if self.showTracker:
             setPlayers()
 
-            if not playerId or not opponentId:
+            if not playerId or not player or not opponentId:
                 return
 
             if not player.hasDeckList:
                 print('not found my deck')
-                # startingCardIds = getStartingCardIds()
-                startingCardIds = [100071]
-                #startingCardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
-                #startingCardIds = [1011,1011,1012,1036,1036,1127,1127,1243,1243,1249,1250,1293,1293,1350,1352,1352,1384,1386,1392,1392,1526,1526,1532,1532,1538,1538,1542,1542,1547,1547]
-                player.deck.setDeckList('unknown', startingCardIds)
+
+                startingCardIds = getStartingCardIds()
+                player.deck.setDeckList('player', startingCardIds)
 
             if needUpdateOpponentDeck or not opponent.hasDeckList:
                 print('not found opponent deck')
-                (god, cardIds, archetype, stats) = getOpponentDeck(opponentGod, needUpdate=needUpdateOpponentDeck)
-                # cardIds = [87002, 87003, 87004, 87006, 87007, 87009, 87010, 87012, 87012, 87014, 87016, 87018, 87020, 87021, 87022, 87026, 87036, 87036, 87039, 87039, 87040, 87040, 87041, 87041, 87042, 87042, 87043, 87043, 87044, 87044]
-                opponent.deck.setDeckList(god, cardIds, archetype, stats)
+                (god, startingCardIds, archetype, stats) = getOpponentDeck(
+                    opponentGod, needUpdate=needUpdateOpponentDeck)
+
+                opponent.deck.setDeckList(god, startingCardIds, archetype, stats)
                 needUpdateOpponentDeck = False
 
             setFirstPlayerId()
             processCombatRecorder()
-
-            # if (updatedList == -1):
-            #     if (self.warnedAboutLogFile):
-            #         # We are already warned about the log file, so we just need the user to update the logfile
-            #         return
-            #     else:
-            #         # We need to warn the user that the current log path isn't valid. This is extremely weird, though,
-            #         #   since we've made it past startingDeckList. If this happens, there was probably a restructuring
-            #         #   of the logs files, which would suck.
-            #         alert = QMessageBox()
-            #         alert.setText('No valid log file found. Please check path. [Debugging Code: 0102]')
-            #         alert.exec()
-            #         self.warnedAboutLogFile = True
-            #         self.warnedlogFolderPath = self.logFolderPath
-            #         return
-            # elif (updatedList == -2):
-            #     # Event solver doesn't exist yet, so just wait
-            #     return
 
             # decksText = getDecksStr()
             if player and opponent and player.hasDeckList and opponent.hasDeckList:
                 meHtml = player.asHtml()
                 opponentHtml = opponent.asHtml()
                 decksHtml = HTML_TEMPLATE.replace(f'[me_DECKS]', meHtml).replace(f'[opponent_DECKS]', opponentHtml)
+                # open('my.html', 'w').write(decksHtml.encode('utf8').decode('ascii', 'ignore'))
 
         self.deckTrackerLabel.setText(decksText)
 
@@ -892,8 +904,10 @@ class SettingsWindow(QWidget):
             self.updateNotify = False
             strToDisplay = "(Currently Disabled)"
 
-        self.updateNotifyButton = QPushButton("Toggle Update Notifications " + strToDisplay, self)
-        self.updateNotifyButton.clicked.connect(lambda i: toggleConfigBoolean(self.configFile, "updateNotify"))
+        self.updateNotifyButton = QPushButton(
+            "Toggle Update Notifications " + strToDisplay, self)
+        self.updateNotifyButton.clicked.connect(
+            lambda i: toggleConfigBoolean(self.configFile, "updateNotify"))
         self.updateNotifyButton.clicked.connect(self.updateText)
         self.updateNotifyButton.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.updateNotifyButton)
@@ -903,13 +917,16 @@ class SettingsWindow(QWidget):
             self.updateNotify = False
             strToDisplay = "(Currently Disabled)"
 
-        self.autoUpdateButton = QPushButton("Toggle Automatic Updates " + strToDisplay, self)
-        self.autoUpdateButton.clicked.connect(lambda i: toggleConfigBoolean(self.configFile, "autoUpdate"))
+        self.autoUpdateButton = QPushButton(
+            "Toggle Automatic Updates " + strToDisplay, self)
+        self.autoUpdateButton.clicked.connect(
+            lambda i: toggleConfigBoolean(self.configFile, "autoUpdate"))
         self.autoUpdateButton.clicked.connect(self.updateText)
         self.autoUpdateButton.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.autoUpdateButton)
 
-        self.textSizeLabel = QLabel("Enter desired text size (Currently " + str(self.textSize) + "):")
+        self.textSizeLabel = QLabel(
+            "Enter desired text size (Currently " + str(self.textSize) + "):")
         self.textSizeLabel.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.textSizeLabel)
 
@@ -917,7 +934,8 @@ class SettingsWindow(QWidget):
         self.textSizeEdit.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.textSizeEdit)
 
-        self.textFontLabel = QLabel("Enter desired text font (Currently " + str(self.textFont) + "):")
+        self.textFontLabel = QLabel(
+            "Enter desired text font (Currently " + str(self.textFont) + "):")
         self.textFontLabel.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.textFontLabel)
 
@@ -962,14 +980,16 @@ class SettingsWindow(QWidget):
             self.updateNotify = False
             strToDisplay = "(Currently Disabled)"
 
-        self.updateNotifyButton.setText("Toggle Update Notifications " + strToDisplay)
+        self.updateNotifyButton.setText(
+            "Toggle Update Notifications " + strToDisplay)
 
         strToDisplay = "(Currently Enabled)"
         if (getConfigVal(self.configFile, "autoUpdate") == "False"):
             self.updateNotify = False
             strToDisplay = "(Currently Disabled)"
 
-        self.autoUpdateButton.setText("Toggle Automatic Updates " + strToDisplay)
+        self.autoUpdateButton.setText(
+            "Toggle Automatic Updates " + strToDisplay)
 
     def confirm(self):
         # 0 (Text Font)
@@ -1008,7 +1028,8 @@ class SettingsWindow(QWidget):
 
             if (not os.path.exists(updateLogPath)):
                 alert = QMessageBox()
-                alert.setText('Warning: Path not found. Please enter a valid path.')
+                alert.setText(
+                    'Warning: Path not found. Please enter a valid path.')
                 alert.exec()
 
             else:
@@ -1062,13 +1083,15 @@ def compareVersions(v1, v2):
 
 
 def findGithubVersion():
-    githubData = urllib.request.urlopen("https://github.com/antofa/GU_Deck_Tracker/")
+    githubData = urllib.request.urlopen(
+        "https://github.com/antofa/GU_Deck_Tracker/")
     githubString = githubData.read().decode("utf8")
     return re.search('gu_tracker-v(.*).py" ', githubString).group(1).strip()
 
 
 def openPatchNotesWebpage():
-    webbrowser.open(("https://github.com/antofa/GU_Deck_Tracker/blob/main/ChangeLog.md"), new=2, autoraise=True)
+    webbrowser.open(
+        ("https://github.com/antofa/GU_Deck_Tracker/blob/main/ChangeLog.md"), new=2, autoraise=True)
 
 
 def updateAndRestart(configFile, updateVersion):
@@ -1117,7 +1140,8 @@ class JustUpdatedWindow(QWidget):
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.layout = QVBoxLayout()
 
-        self.displayText = QLabel("You have just updated to version " + updateVersion + "!")
+        self.displayText = QLabel(
+            "You have just updated to version " + updateVersion + "!")
         self.displayText.setFont(QFont(self.textFont, self.textSize))
         self.displayText.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.displayText)
@@ -1160,8 +1184,10 @@ class UpdateWindow(QWidget):
         self.openPage.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.openPage)
 
-        self.updateNow = QPushButton("Update Now! (Will freeze for a little; don't worry!)", self)
-        self.updateNow.clicked.connect(lambda i: updateAndRestart(configFile, updateVersion))
+        self.updateNow = QPushButton(
+            "Update Now! (Will freeze for a little; don't worry!)", self)
+        self.updateNow.clicked.connect(
+            lambda i: updateAndRestart(configFile, updateVersion))
         self.updateNow.setFont(QFont(self.textFont, self.textSize))
         self.layout.addWidget(self.updateNow)
 
@@ -1257,7 +1283,7 @@ def updateTracker(configFile, updateVersion):
 
 if __name__ == "__main__":
     # retrive game id at start
-    # gameId = getGameId()
+    gameId = getGameId()
 
     # defaults
     defaultFont = "Helvetica"
