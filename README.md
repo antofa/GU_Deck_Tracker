@@ -35,6 +35,7 @@ I believe that this should work with any OS that can run Python (which is pretty
 but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or not for you!
 
 ## Screenshots
+![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot3.png)
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot1.png)
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot2.png)
 
@@ -48,4 +49,4 @@ but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or 
 
 ## Donations:<br>
 If you're feeling extremely generous and want to support the continued development of this tracker:<br>
-ETH Address (ERC20): 0xfD48bAe62a0a815bAAFEE04B2c321CA67EB34658
+ETH Address (ERC20): 0xa7a0e283204dc9c891f2a4663c9161ec3b6906e8
