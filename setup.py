@@ -7,7 +7,7 @@ from version import VERSION
 # "packages": ["os"] is used as example only
 # build_exe_options = {"packages": ["os"], "excludes": ["lib2to3", "logging", "test", "tkinter", "unittest", "xml", "tkinter"]}
 excludes = ["tkinter"]
-include_files = [('data/data.json', 'data/data.json'), ('data/opponent.json', 'data/opponent.json'), ('media/logo.ico', 'media/logo.ico'), 'config.txt']
+include_files = [('data/data.json', 'data/data.json'), ('data/opponent.json', 'data/opponent.json'), ('media/logo.ico', 'media/logo.ico'), 'config.txt', ('README.md', 'readme.txt')]
 options = {
     'build_exe': {
         'include_msvcr': True,
