@@ -35,9 +35,9 @@ I believe that this should work with any OS that can run Python (which is pretty
 but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or not for you!
 
 ## Screenshots
-![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot3.png)
-![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot1.png)
-![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/main/media/screenshot2.png)
+![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot3.png)
+![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot1.png)
+![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot2.png)
 
 ## FAQs:<br>
 - Q: My Deck Tracker crashes as soon as I open it!<br>
