@@ -39,9 +39,17 @@ but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or 
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot1.png)
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot2.png)
 
+## Paid version:<br>
+- Full last played deck of opponent (in free version 5 cards are hidden)<br>
+- Improved log processing
+- Discord support (questions and proposals) https://discord.gg/XyHTxJQSXe
+
 ## FAQs:<br>
 - Q: My Deck Tracker crashes as soon as I open it!<br>
   A: That isn't a question, but try deleting your config.txt file. If that doesn't work, please reach out to me at antofa#3694 on Discord!
+  
+- Q: How to get paid version?<br>
+  A: Contact me antofa#3694 by using private messages on Discord.
 
 ## Alternatives:
 - https://github.com/JMoore11235/GU_Deck_Tracker (original project)
