@@ -1,5 +1,10 @@
 data/
+data
 build/
+dist/
+
+.env
+config.txt
 
 *.pyc
 *.db
