@@ -18,33 +18,35 @@ Priority highest to lowest
 - [ ] Handle unknown cards (from future sets)
 - [ ] Get opponent player performance from last week
 - [ ] Reduce build size (qt5)
-- [ ] Card preview (image with description)
+- [x] Card preview (image with description)
 - [ ] Recover update app functions (for existing users)
 
-## General Use<br>
-Whenever you start a game, your and opponnent (last played by god type) deck will automatically be updated.<br>
+## General Use
+Whenever your game is started, click "+" sign to see your and opponnent (last played by god type) decks.<br>
+Whenever your game is ended, click "-" sign to hide decks.<br>
+For now tracker works in semi-automatical mode. Will be improved later.<br>
 
-Once you're in a game, the top button will bring you to your opponents gudecks.com page, which will allow you to look at their decks if you want to.<br>
-
-Finally, the settings page can be used to change the text font/size as well as transparency. 
-Also, if your log folder is in a weird spot (or you aren't on Windows), you'll need to update the path to the file there. 
-The path that you should provide is the folder above the folders where log files are kept (it should be ".../FuelGames" without the quotes). 
-This will allow the tracker to automatically use the most recently modified folder, which means that you won't need to update every time the game changes.<br>
-
-I believe that this should work with any OS that can run Python (which is pretty much anything normal), 
-but if you're on Mac/Linux, I'd really appreciate if you tell me if it works or not for you!
+### Buttons
+browser - open your opponents gudecks.com page, which will allow you to look at their decks if you want to<br>
++/- (Ctrl + e) - toggle deck tracker<br>
+pin (Ctrl + d) - remember position of tracker on screen<br>
+gear - settings window<br>
+? - about window<br>
+_ - collapse<br>
+x (Ctrl + q) - close<br>
 
 ## Screenshots
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot3.png)
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot1.png)
 ![](https://raw.githubusercontent.com/antofa/GU_Deck_Tracker/public/media/screenshot2.png)
 
-## Paid version:<br>
+
+## Paid version:
 - Full last played deck of opponent (in free version 5 cards are hidden)<br>
 - Improved log processing
 - Discord support (questions and proposals) https://discord.gg/XyHTxJQSXe
 
-## FAQs:<br>
+## FAQs:
 - Q: My Deck Tracker crashes as soon as I open it!<br>
   A: That isn't a question, but try deleting your config.txt file. If that doesn't work, please reach out to me at antofa#3694 on Discord!
   
